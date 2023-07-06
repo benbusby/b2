@@ -1,5 +1,6 @@
 # b2-go
-Go library for the Backblaze B2 API
+A Go library for the [Backblaze B2 Cloud Storage
+](https://www.backblaze.com/b2/cloud-storage.html) API.
 
 ## Contents
 
