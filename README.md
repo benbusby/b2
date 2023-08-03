@@ -82,11 +82,11 @@ ___
 
 ```go
 b2, err := b2.AuthorizeAccount(
-  os.Getenv("B2_BUCKET_KEY_ID"),
-  os.Getenv("B2_BUCKET_KEY"))
+	os.Getenv("B2_BUCKET_KEY_ID"),
+	os.Getenv("B2_BUCKET_KEY"))
 
 if err != nil {
-  panic(err)
+	panic(err)
 }
 ```
 
@@ -128,8 +128,8 @@ ___
 
 ```go
 b2, _ := b2.AuthorizeAccount(
-  os.Getenv("B2_BUCKET_KEY_ID"),
-  os.Getenv("B2_BUCKET_KEY"))
+	os.Getenv("B2_BUCKET_KEY_ID"),
+	os.Getenv("B2_BUCKET_KEY"))
 
 b2Uploader, _ := b2.GetUploadURL()
 
@@ -140,9 +140,9 @@ h.Write(data)
 checksum := fmt.Sprintf("%x", h.Sum(nil))
 
 file, err := b2Uploader.UploadFile(
-  "myfile.txt",
-  checksum,
-  data)
+	"myfile.txt",
+	checksum,
+	data)
 
 // save/store `file.FileID` somewhere in order to access it later
 ```
@@ -215,35 +215,35 @@ data := make([]byte, dataSize) // empty, only for example
 var checksums []string
 
 b2, _ := b2.AuthorizeAccount(
-  os.Getenv("B2_BUCKET_KEY_ID"),
-  os.Getenv("B2_BUCKET_KEY"))
+	os.Getenv("B2_BUCKET_KEY_ID"),
+	os.Getenv("B2_BUCKET_KEY"))
 
 b2InitFile, _ := b2.StartLargeFile("mybigfile.mp4")
 b2PartUploader, _ := b2.GetUploadPartURL(b2InitFile)
 
 for i := 0; i < dataSize; i++ {
-  start := i * chunkSize
-  stop := i * chunkSize + chunkSize
-  chunk := data[start:stop]
+	start := i * chunkSize
+	stop := i * chunkSize + chunkSize
+	chunk := data[start:stop]
 
-  h := sha1.New()
-  h.Write(data)
-  checksum := fmt.Sprintf("%x", h.Sum(nil))
-  checksums = append(checksums, checksum)
+	h := sha1.New()
+	h.Write(data)
+	checksum := fmt.Sprintf("%x", h.Sum(nil))
+	checksums = append(checksums, checksum)
 
-  // B2 chunk numbering starts at 1, not 0
-  err := info.UploadFilePart(i+1, checksum, chunk)
+	// B2 chunk numbering starts at 1, not 0
+	err := info.UploadFilePart(i+1, checksum, chunk)
 
-  if err != nil {
-    panic(err)
-  }
+	if err != nil {
+		panic(err)
+	}
 }
 
 checksumsStr := "[\"" + strings.Join(checksums, "\",\"") + "\"]"
 
 err = b2.FinishLargeFile(b2PartUploader.FileID, checksumsStr)
 if err != nil {
-  panic(err)
+	panic(err)
 }
 ```
 
@@ -278,8 +278,8 @@ ___
 
 ```go
 b2, _ := b2.AuthorizeAccount(
-  os.Getenv("B2_BUCKET_KEY_ID"),
-  os.Getenv("B2_BUCKET_KEY"))
+	os.Getenv("B2_BUCKET_KEY_ID"),
+	os.Getenv("B2_BUCKET_KEY"))
 
 id := getB2FileID() // value from UploadFile or FinishLargeFile
 
@@ -292,8 +292,8 @@ data, err := b2.DownloadById(id)
 
 ```go
 b2, _ := b2.AuthorizeAccount(
-  os.Getenv("B2_BUCKET_KEY_ID"),
-  os.Getenv("B2_BUCKET_KEY"))
+	os.Getenv("B2_BUCKET_KEY_ID"),
+	os.Getenv("B2_BUCKET_KEY"))
 
 id := getB2FileID() // value from UploadFile or FinishLargeFile
 fileSize := getB2FileSize() // same note as above
@@ -303,10 +303,10 @@ i := 0
 var output []byte
 
 for i < fileSize {
-  start := i * chunkSize
-  stop := i * chunkSize + chunkSize
-  data, _ := auth.PartialDownloadById(id, start, stop)
-  output = append(output, data...)
+	start := i * chunkSize
+	stop := i * chunkSize + chunkSize
+	data, _ := auth.PartialDownloadById(id, start, stop)
+	output = append(output, data...)
 }
 
 // do something with output (full file data)
@@ -331,14 +331,14 @@ ___
 
 ```go
 b2, _ := b2.AuthorizeAccount(
-  os.Getenv("B2_BUCKET_KEY_ID"),
-  os.Getenv("B2_BUCKET_KEY"))
+	os.Getenv("B2_BUCKET_KEY_ID"),
+	os.Getenv("B2_BUCKET_KEY"))
 
 id, name := getB2FileInfo()
 
 if b2.DeleteFile(id, name) {
-  fmt.Println("File successfully deleted")
+	fmt.Println("File successfully deleted")
 } else {
-  return errors.New("failed to delete file")
+	return errors.New("failed to delete file")
 }
 ```
