@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/benbusby/b2/utils"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"os"
 	"strconv"
-	"yeetfile/b2/utils"
 )
 
 const APIStartLargeFile string = "b2_start_large_file"

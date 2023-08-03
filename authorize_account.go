@@ -4,11 +4,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/benbusby/b2/utils"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"strings"
-	"yeetfile/b2/utils"
 )
 
 const AuthURL string = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account"

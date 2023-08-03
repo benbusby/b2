@@ -2,11 +2,11 @@ package b2
 
 import (
 	"fmt"
+	"github.com/benbusby/b2/utils"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httputil"
-	"yeetfile/b2/utils"
 )
 
 const APIDownloadById string = "b2_download_file_by_id"

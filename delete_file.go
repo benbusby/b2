@@ -3,10 +3,10 @@ package b2
 import (
 	"bytes"
 	"fmt"
+	"github.com/benbusby/b2/utils"
 	"log"
 	"net/http"
 	"net/http/httputil"
-	"yeetfile/b2/utils"
 )
 
 const APIDeleteFile = "b2_delete_file_version"
