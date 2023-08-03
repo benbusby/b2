@@ -10,6 +10,7 @@ A Go library for the [Backblaze B2 Cloud Storage
    2. [Upload File](#upload-file)
    3. [Upload Large File](#upload-large-file)
    4. [Download File](#download-file)
+   5. [Delete a File](#delete-a-file)
 
 ## API Support
 
@@ -27,6 +28,12 @@ The following API endpoints and functionality are currently supported:
   - `b2_finish_large_file`
 - Downloading a file
   - `b2_download_file_by_id`
+- Deleting a file
+  - `b2_delete_file_version`
+ 
+The project is being actively developed, and more functionaly will likely
+be added in the near future. Existing functionality is unlikely to change
+and should be considered stable.
 
 ## Usage
 
@@ -55,7 +62,20 @@ type Auth struct {
 ```
 
 Most B2 functions have a receiver type of `Auth` and will use the
-`AuthorizationToken` field to authenticate requests. 
+`AuthorizationToken` field to authenticate requests.
+
+___
+
+#### Function
+
+```go
+func AuthorizeAccount(
+	b2BucketKeyId string,
+	b2BucketKey string,
+) (Auth, error)
+```
+
+___
 
 #### Example
 
@@ -80,45 +100,28 @@ Note that although the endpoint for retrieving upload data is named
 URL. Most importantly, it contains the required auth token for actually
 uploading the file.
 
-```go
-type FileInfo struct {
-	BucketID           string `json:"bucketId"`
-	UploadURL          string `json:"uploadUrl"`
-	AuthorizationToken string `json:"authorizationToken"`
-}
-```
-
 After uploading, you'll receive a struct with fields such as `FileID` that
-you can use to access the file later:
+you can use to access or delete the file later.
 
+___
+
+#### Functions
+
+Get upload URL:
 ```go
-type File struct {
-	AccountID     string `json:"accountId"`
-	Action        string `json:"action"`
-	BucketID      string `json:"bucketId"`
-	ContentLength int    `json:"contentLength"`
-	ContentMd5    string `json:"contentMd5"`
-	ContentSha1   string `json:"contentSha1"`
-	ContentType   string `json:"contentType"`
-	FileID        string `json:"fileId"`
-	FileInfo      struct {
-	} `json:"fileInfo"`
-	FileName      string `json:"fileName"`
-	FileRetention struct {
-		IsClientAuthorizedToRead bool `json:"isClientAuthorizedToRead"`
-		Value                    any  `json:"value"`
-	} `json:"fileRetention"`
-	LegalHold struct {
-		IsClientAuthorizedToRead bool `json:"isClientAuthorizedToRead"`
-		Value                    any  `json:"value"`
-	} `json:"legalHold"`
-	ServerSideEncryption struct {
-		Algorithm string `json:"algorithm"`
-		Mode      string `json:"mode"`
-	} `json:"serverSideEncryption"`
-	UploadTimestamp int64 `json:"uploadTimestamp"`
-}
+func (b2Auth Auth) GetUploadURL() (FileInfo, error)
 ```
+
+Upload file:
+```go
+func (b2Info FileInfo) UploadFile(
+	filename string,
+	checksum string,
+	contents []byte,
+) (File, error)
+```
+
+___
 
 #### Example
 
@@ -161,11 +164,40 @@ You'll also need to track each checksum as you upload data, since finishing a
 large file requires an array of past checksums to finalize the upload.
 
 The finalized large file struct, like the normal B2 file struct, contains metadata
-that you may want in order to access the file later:
+that you may want in order to access the file later.
 
+___
+
+#### Function(s)
+
+Start large file:
 ```go
-TODO
+func (b2Auth Auth) StartLargeFile(filename string) (StartFile, error)
 ```
+
+Get upload part URL:
+```go
+func (b2Auth Auth) GetUploadPartURL(b2File StartFile) (FilePartInfo, error)
+```
+
+Upload file part:
+```go
+func (b2PartInfo FilePartInfo) UploadFilePart(
+	chunkNum int,
+	checksum string,
+	contents []byte,
+) error
+```
+
+Finish large file:
+```go
+func (b2Auth Auth) FinishLargeFile(
+	fileID string,
+	checksums string,
+) (LargeFile, error)
+```
+
+___
 
 #### Example
 
@@ -215,6 +247,27 @@ Downloading a file can either be done in one request (likely only
 feasible for smaller files) or chunked, similar to how large files
 are uploaded but in reverse.
 
+___
+
+#### Functions
+
+Multi-part download:
+```
+func (b2Auth Auth) PartialDownloadById(
+	id string,
+	begin int,
+	end int,
+) ([]byte, error)
+```
+
+Full download:
+
+```go
+func (b2Auth Auth) DownloadById(id string) ([]byte, error)
+```
+
+___
+
 #### Example (single request)
 
 ```go
@@ -251,4 +304,35 @@ for i < fileSize {
 }
 
 // do something with output (full file data)
+```
+
+### Delete a File
+
+Deleting a file requires both the file's ID, and the file's name. Both
+of these are returned in the final struct when uploading a file and
+should be stored somewhere if you want to delete the file later on.
+
+___
+
+#### Function
+
+```go
+func (b2Auth Auth) DeleteFile(b2ID string, name string) bool
+```
+___
+
+#### Example
+
+```go
+b2, _ := b2.AuthorizeAccount(
+  os.Getenv("B2_BUCKET_KEY_ID"),
+  os.Getenv("B2_BUCKET_KEY"))
+
+id, name := getB2FileInfo()
+
+if b2.DeleteFile(id, name) {
+  fmt.Println("File successfully deleted")
+} else {
+  return errors.New("failed to delete file")
+}
 ```
