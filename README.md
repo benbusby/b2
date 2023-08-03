@@ -1,4 +1,4 @@
-# b2-go
+# b2
 A Go library for the [Backblaze B2 Cloud Storage
 ](https://www.backblaze.com/b2/cloud-storage.html) API.
 
