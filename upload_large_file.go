@@ -15,6 +15,7 @@ import (
 const APIStartLargeFile string = "b2_start_large_file"
 const APIGetUploadPartURL string = "b2_get_upload_part_url"
 const APIFinishLargeFile = "b2_finish_large_file"
+const APICancelLargeFile = "b2_cancel_large_file"
 
 // StartFile represents the data returned by StartLargeFile
 type StartFile struct {
@@ -113,7 +114,7 @@ func (b2Auth Auth) StartLargeFile(
 	} else if res.StatusCode >= 400 {
 		log.Printf("\n%s %s\n", "POST", reqURL)
 		resp, _ := httputil.DumpResponse(res, true)
-		fmt.Println(fmt.Sprintf("%s", resp))
+		log.Println(fmt.Sprintf("%s", resp))
 		return StartFile{}, utils.Error
 	}
 
@@ -160,7 +161,7 @@ func (b2Auth Auth) GetUploadPartURL(
 	} else if res.StatusCode >= 400 {
 		log.Printf("\n%s %s\n", "GET", reqURL)
 		resp, _ := httputil.DumpResponse(res, true)
-		fmt.Println(fmt.Sprintf("%s", resp))
+		log.Println(fmt.Sprintf("%s", resp))
 		return FilePartInfo{}, utils.Error
 	}
 
@@ -207,11 +208,49 @@ func (b2PartInfo FilePartInfo) UploadFilePart(
 	} else if res.StatusCode >= 400 {
 		log.Printf("\n%s %s\n", "POST", b2PartInfo.UploadURL)
 		resp, _ := httputil.DumpResponse(res, true)
-		fmt.Println(fmt.Sprintf("%s", resp))
+		log.Println(fmt.Sprintf("%s", resp))
 		return utils.Error
 	}
 
 	return nil
+}
+
+// CancelLargeFile cancels an in-progress large file upload and deletes the
+// partial file from the B2 bucket. Returns true if the file was successfully
+// deleted, otherwise false.
+// Requires the fileID returned from StartLargeFile.
+func (b2Auth Auth) CancelLargeFile(fileID string) (bool, error) {
+	reqBody := bytes.NewBuffer([]byte(fmt.Sprintf(`{
+		"fileId": "%s"
+	}`, fileID)))
+
+	reqURL := fmt.Sprintf(
+		"%s/%s/%s",
+		b2Auth.APIURL, utils.APIPrefix, APICancelLargeFile)
+
+	req, err := http.NewRequest("POST", reqURL, reqBody)
+	if err != nil {
+		log.Printf("Error creating new HTTP request: %v\n", err)
+		return false, err
+	}
+
+	req.Header = http.Header{
+		"Authorization": {b2Auth.AuthorizationToken},
+	}
+
+	res, err := utils.Client.Do(req)
+
+	if err != nil {
+		log.Printf("Error canceling B2 large file: %v\n", err)
+		return false, err
+	} else if res.StatusCode >= 400 {
+		log.Printf("\n%s %s\n", "POST", reqURL)
+		resp, _ := httputil.DumpResponse(res, true)
+		log.Println(fmt.Sprintf("%s", resp))
+		return false, utils.Error
+	}
+
+	return true, nil
 }
 
 // FinishLargeFile completes the chunked upload process. The FileID from
@@ -250,7 +289,7 @@ func (b2Auth Auth) FinishLargeFile(
 	} else if res.StatusCode >= 400 {
 		log.Printf("\n%s %s\n", "POST", reqURL)
 		resp, _ := httputil.DumpResponse(res, true)
-		fmt.Println(fmt.Sprintf("%s", resp))
+		log.Println(fmt.Sprintf("%s", resp))
 		return LargeFile{}, utils.Error
 	}
 

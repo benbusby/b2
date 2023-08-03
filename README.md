@@ -26,6 +26,7 @@ The following API endpoints and functionality are currently supported:
   - `b2_get_upload_part_url`
   - `b2_upload_part`
   - `b2_finish_large_file`
+  - `b2_cancel_large_file`
 - Downloading a file
   - `b2_download_file_by_id`
 - Deleting a file
@@ -197,6 +198,11 @@ func (b2Auth Auth) FinishLargeFile(
 ) (LargeFile, error)
 ```
 
+Cancel large file:
+```go
+func (b2Auth Auth) CancelLargeFile(fileID string) (bool, error)
+```
+
 ___
 
 #### Example
@@ -212,7 +218,7 @@ b2, _ := b2.AuthorizeAccount(
   os.Getenv("B2_BUCKET_KEY_ID"),
   os.Getenv("B2_BUCKET_KEY"))
 
-b2InitFile, _ := b2.StartLargeFile("mybigfile.mp3")
+b2InitFile, _ := b2.StartLargeFile("mybigfile.mp4")
 b2PartUploader, _ := b2.GetUploadPartURL(b2InitFile)
 
 for i := 0; i < dataSize; i++ {
@@ -252,7 +258,7 @@ ___
 #### Functions
 
 Multi-part download:
-```
+```go
 func (b2Auth Auth) PartialDownloadById(
 	id string,
 	begin int,
