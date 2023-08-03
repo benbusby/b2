@@ -1,4 +1,4 @@
-package api
+package b2
 
 import (
 	"bytes"
@@ -9,11 +9,12 @@ import (
 	"net/http/httputil"
 	"os"
 	"strconv"
-	"yeetfile/src/b2"
+	"yeetfile/b2/utils"
 )
 
 const APIGetUploadURL string = "b2_get_upload_url"
 
+// File represents the data returned by UploadFile
 type File struct {
 	AccountID     string `json:"accountId"`
 	Action        string `json:"action"`
@@ -41,16 +42,20 @@ type File struct {
 	UploadTimestamp int64 `json:"uploadTimestamp"`
 }
 
+// FileInfo represents the data returned by GetUploadURL
 type FileInfo struct {
 	BucketID           string `json:"bucketId"`
 	UploadURL          string `json:"uploadUrl"`
 	AuthorizationToken string `json:"authorizationToken"`
 }
 
+// GetUploadURL returns a FileInfo struct containing the URL to use
+// for uploading a file, the ID of the bucket the file will be put
+// in, and a token for authenticating the upload request.
 func (b2Auth Auth) GetUploadURL() (FileInfo, error) {
 	reqURL := fmt.Sprintf(
 		"%s/%s/%s",
-		b2Auth.APIURL, b2.APIPrefix, APIGetUploadURL)
+		b2Auth.APIURL, utils.APIPrefix, APIGetUploadURL)
 
 	req, err := http.NewRequest("GET", reqURL, nil)
 
@@ -68,7 +73,7 @@ func (b2Auth Auth) GetUploadURL() (FileInfo, error) {
 		"Authorization": {b2Auth.AuthorizationToken},
 	}
 
-	res, err := b2.B2Client.Do(req)
+	res, err := utils.Client.Do(req)
 	if err != nil {
 		log.Printf("Error requesting B2 upload URL: %v\n", err)
 		return FileInfo{}, err
@@ -76,7 +81,7 @@ func (b2Auth Auth) GetUploadURL() (FileInfo, error) {
 		log.Printf("\n%s %s\n", "GET", reqURL)
 		resp, _ := httputil.DumpResponse(res, true)
 		fmt.Println(fmt.Sprintf("%s", resp))
-		return FileInfo{}, b2.B2Error
+		return FileInfo{}, utils.Error
 	}
 
 	var upload FileInfo
@@ -89,6 +94,10 @@ func (b2Auth Auth) GetUploadURL() (FileInfo, error) {
 	return upload, nil
 }
 
+// UploadFile uploads file byte content to B2 alongside a name for the file
+// and a SHA1 checksum for the byte content. It returns a File object, which
+// contains fields such as FileID and ContentLength which can be stored and
+// used later to download the file.
 func (b2Info FileInfo) UploadFile(
 	filename string,
 	checksum string,
@@ -111,7 +120,7 @@ func (b2Info FileInfo) UploadFile(
 		"X-Bz-Content-Sha1": {checksum},
 	}
 
-	res, err := b2.B2Client.Do(req)
+	res, err := utils.Client.Do(req)
 
 	if err != nil {
 		log.Printf("Error uploading file chunk to B2: %v\n", err)
@@ -120,7 +129,7 @@ func (b2Info FileInfo) UploadFile(
 		log.Printf("\n%s %s\n", "POST", b2Info.UploadURL)
 		resp, _ := httputil.DumpResponse(res, true)
 		fmt.Println(fmt.Sprintf("%s", resp))
-		return File{}, b2.B2Error
+		return File{}, utils.Error
 	}
 
 	var b2File File

@@ -1,4 +1,4 @@
-package api
+package b2
 
 import (
 	"fmt"
@@ -6,15 +6,17 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
-	"yeetfile/src/b2"
+	"yeetfile/b2/utils"
 )
 
 const APIDownloadById string = "b2_download_file_by_id"
 
+// setupDownload creates an http.Request with the URL for downloading a file,
+// as well as the file ID included in the query.
 func setupDownload(apiURL string, fileID string) (*http.Request, error) {
 	reqURL := fmt.Sprintf(
 		"%s/%s/%s",
-		apiURL, b2.APIPrefix, APIDownloadById)
+		apiURL, utils.APIPrefix, APIDownloadById)
 
 	req, err := http.NewRequest("GET", reqURL, nil)
 
@@ -30,15 +32,17 @@ func setupDownload(apiURL string, fileID string) (*http.Request, error) {
 	return req, nil
 }
 
+// download uses the http.Request returned by setupDownload to execute the
+// request and return the []byte file content from B2.
 func download(req *http.Request) ([]byte, error) {
-	res, err := b2.B2Client.Do(req)
+	res, err := utils.Client.Do(req)
 	if err != nil {
 		log.Printf("Error requesting B2 download: %v\n", err)
 		return nil, err
 	} else if res.StatusCode >= 400 {
 		resp, _ := httputil.DumpResponse(res, true)
 		fmt.Println(fmt.Sprintf("%s", resp))
-		return nil, b2.B2Error
+		return nil, utils.Error
 	}
 
 	defer func(Body io.ReadCloser) {
@@ -56,6 +60,9 @@ func download(req *http.Request) ([]byte, error) {
 	return body, nil
 }
 
+// PartialDownloadById downloads a file from B2 with a specified begin and end
+// byte. For example, setting begin to 0 and end to 99 will download only the
+// first 99 bytes of the file.
 func (b2Auth Auth) PartialDownloadById(
 	id string,
 	begin int,
@@ -77,6 +84,7 @@ func (b2Auth Auth) PartialDownloadById(
 	return download(req)
 }
 
+// DownloadById downloads an entire file (regardless of size) from B2.
 func (b2Auth Auth) DownloadById(id string) ([]byte, error) {
 	req, err := setupDownload(b2Auth.APIURL, id)
 	if err != nil {

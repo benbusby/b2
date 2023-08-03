@@ -1,4 +1,4 @@
-package api
+package b2
 
 import (
 	"encoding/base64"
@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"strings"
-	"yeetfile/src/b2"
+	"yeetfile/b2/utils"
 )
 
 const AuthURL string = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account"
@@ -47,7 +47,7 @@ func AuthorizeAccount(
 		"Authorization": {fmt.Sprintf("Basic: %s", authString)},
 	}
 
-	res, err := b2.B2Client.Do(req)
+	res, err := utils.Client.Do(req)
 	if err != nil {
 		log.Printf("Error sending B2 auth request: %v", err)
 		return Auth{}, err
