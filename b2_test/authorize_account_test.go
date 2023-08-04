@@ -2,16 +2,10 @@ package b2_test
 
 import (
 	. "github.com/benbusby/b2"
-	"io"
-	"log"
 	"os"
 	"reflect"
 	"testing"
 )
-
-func init() {
-	log.SetOutput(io.Discard)
-}
 
 func TestAuthorizeAccount(t *testing.T) {
 	bucketKeyID := os.Getenv("B2_TEST_KEY_ID")
