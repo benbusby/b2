@@ -54,7 +54,7 @@ func AuthorizeAccount(
 	} else if res.StatusCode >= 400 {
 		log.Printf("%s -- error: %d\n", AuthURL, res.StatusCode)
 		resp, _ := httputil.DumpResponse(res, true)
-		fmt.Println(fmt.Sprintf("%s", resp))
+		log.Println(fmt.Sprintf("%s", resp))
 	}
 
 	var auth Auth
