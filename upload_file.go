@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
-	"os"
 	"strconv"
 )
 
@@ -52,7 +51,7 @@ type FileInfo struct {
 // GetUploadURL returns a FileInfo struct containing the URL to use
 // for uploading a file, the ID of the bucket the file will be put
 // in, and a token for authenticating the upload request.
-func (b2Auth Auth) GetUploadURL() (FileInfo, error) {
+func (b2Auth Auth) GetUploadURL(bucketID string) (FileInfo, error) {
 	reqURL := fmt.Sprintf(
 		"%s/%s/%s",
 		b2Auth.APIURL, utils.APIPrefix, APIGetUploadURL)
@@ -60,7 +59,7 @@ func (b2Auth Auth) GetUploadURL() (FileInfo, error) {
 	req, err := http.NewRequest("GET", reqURL, nil)
 
 	q := req.URL.Query()
-	q.Add("bucketId", os.Getenv("B2_BUCKET_ID"))
+	q.Add("bucketId", bucketID)
 	req.URL.RawQuery = q.Encode()
 
 	if err != nil {
@@ -80,7 +79,7 @@ func (b2Auth Auth) GetUploadURL() (FileInfo, error) {
 	} else if res.StatusCode >= 400 {
 		log.Printf("\n%s %s\n", "GET", reqURL)
 		resp, _ := httputil.DumpResponse(res, true)
-		fmt.Println(fmt.Sprintf("%s", resp))
+		log.Println(fmt.Sprintf("%s", resp))
 		return FileInfo{}, utils.Error
 	}
 
@@ -98,7 +97,8 @@ func (b2Auth Auth) GetUploadURL() (FileInfo, error) {
 // and a SHA1 checksum for the byte content. It returns a File object, which
 // contains fields such as FileID and ContentLength which can be stored and
 // used later to download the file.
-func (b2Info FileInfo) UploadFile(
+func UploadFile(
+	b2Info FileInfo,
 	filename string,
 	checksum string,
 	contents []byte,
@@ -128,7 +128,7 @@ func (b2Info FileInfo) UploadFile(
 	} else if res.StatusCode >= 400 {
 		log.Printf("\n%s %s\n", "POST", b2Info.UploadURL)
 		resp, _ := httputil.DumpResponse(res, true)
-		fmt.Println(fmt.Sprintf("%s", resp))
+		log.Println(fmt.Sprintf("%s", resp))
 		return File{}, utils.Error
 	}
 
