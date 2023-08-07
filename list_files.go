@@ -1,0 +1,118 @@
+package b2
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/benbusby/b2/utils"
+	"log"
+	"net/http"
+	"net/http/httputil"
+)
+
+const APIListFileVersions = "b2_list_file_versions"
+
+type FileList struct {
+	Files []struct {
+		AccountID     string `json:"accountId"`
+		Action        string `json:"action"`
+		BucketID      string `json:"bucketId"`
+		ContentLength int    `json:"contentLength"`
+		ContentSha1   string `json:"contentSha1"`
+		ContentMd5    string `json:"contentMd5"`
+		ContentType   string `json:"contentType"`
+		FileID        string `json:"fileId"`
+		FileInfo      struct {
+			SrcLastModifiedMillis string `json:"src_last_modified_millis"`
+		} `json:"fileInfo"`
+		FileName      string `json:"fileName"`
+		FileRetention struct {
+			IsClientAuthorizedToRead bool `json:"isClientAuthorizedToRead"`
+			Value                    struct {
+				Mode                 string `json:"mode"`
+				RetainUntilTimestamp string `json:"retainUntilTimestamp"`
+			} `json:"value"`
+		} `json:"fileRetention"`
+		LegalHold struct {
+			IsClientAuthorizedToRead bool   `json:"isClientAuthorizedToRead"`
+			Value                    string `json:"value"`
+		} `json:"legalHold"`
+		ReplicationStatus    string `json:"replicationStatus"`
+		ServerSideEncryption struct {
+			Algorithm string `json:"algorithm"`
+			Mode      string `json:"mode"`
+		} `json:"serverSideEncryption"`
+		UploadTimestamp int `json:"uploadTimestamp"`
+	} `json:"files"`
+	NextFileName string `json:"nextFileName"`
+	NextFileID   string `json:"nextFileId"`
+}
+
+// ListAllFiles is a helper function for simply fetching all available files in
+// the bucket. If more than 100 files exist, the FileList struct will contain
+// NextFileName and NextFileID fields that can be used with ListFiles to fetch
+// the remainder.
+func (b2Auth Auth) ListAllFiles(bucketID string) (FileList, error) {
+	return b2Auth.ListFiles(bucketID, 100, "", "")
+}
+
+// ListNFiles is similar to ListAllFiles, but allows explicitly stating how many
+// files you want returned in the response.
+func (b2Auth Auth) ListNFiles(bucketID string, count int) (FileList, error) {
+	return b2Auth.ListFiles(bucketID, count, "", "")
+}
+
+// ListFiles lists all files in the specified bucket up to a maximum of `count`,
+// starting with `startName` and, optionally, `startID`. If count is set to an
+// invalid or negative value, the default number of files returned is 100. If
+// startName or startID are not set, the bucket will list all files
+func (b2Auth Auth) ListFiles(
+	bucketID string,
+	count int,
+	startName string,
+	startID string,
+) (FileList, error) {
+	reqURL := fmt.Sprintf(
+		"%s/%s/%s",
+		b2Auth.APIURL, utils.APIPrefix, APIListFileVersions)
+
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return FileList{}, err
+	}
+
+	q := req.URL.Query()
+	q.Add("bucketId", bucketID)
+	q.Add("maxFileCount", fmt.Sprintf("%d", count))
+
+	if len(startName) > 0 {
+		q.Add("startFileName", startName)
+	}
+
+	if len(startID) > 0 {
+		q.Add("startFileId", startID)
+	}
+
+	req.URL.RawQuery = q.Encode()
+	req.Header = http.Header{
+		"Authorization": {b2Auth.AuthorizationToken},
+	}
+
+	res, err := utils.Client.Do(req)
+	if err != nil {
+		log.Printf("Error requesting B2 file list: %v\n", err)
+		return FileList{}, err
+	} else if res.StatusCode >= 400 {
+		resp, _ := httputil.DumpResponse(res, true)
+		log.Println(fmt.Sprintf("%s", resp))
+		return FileList{}, utils.Error
+	}
+
+	var b2FileList FileList
+	err = json.NewDecoder(res.Body).Decode(&b2FileList)
+	if err != nil {
+		log.Printf("Error decoding B2 file list: %v", err)
+		return FileList{}, err
+	}
+
+	return b2FileList, nil
+}

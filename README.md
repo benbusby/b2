@@ -11,6 +11,7 @@ A Go library for the [Backblaze B2 Cloud Storage
    3. [Upload Large File](#upload-large-file)
    4. [Download File](#download-file)
    5. [Delete a File](#delete-a-file)
+   6. [List Files](#list-files)
 
 ## API Support
 
@@ -32,7 +33,7 @@ The following API endpoints and functionality are currently supported:
 - Deleting a file
   - `b2_delete_file_version`
  
-The project is being actively developed, and more functionaly will likely
+The project is being actively developed, and more functionality will likely
 be added in the near future. Existing functionality is unlikely to change
 and should be considered stable.
 
@@ -340,5 +341,39 @@ if b2.DeleteFile(id, name) {
 	fmt.Println("File successfully deleted")
 } else {
 	return errors.New("failed to delete file")
+}
+```
+
+### List Files
+
+Listing files requires the bucket ID that you're wanting to query, and
+can accept a few optional parameters for filtering.
+
+___
+
+#### Functions
+
+```go
+func (b2Auth Auth) ListAllFiles(bucketID string) (FileList, error)
+
+func (b2Auth Auth) ListNFiles(bucketID string, count int) (FileList, error)
+
+func (b2Auth Auth) ListFiles(
+	bucketID string,
+	count int,
+	startName string,
+	startID string,
+) (FileList, error)
+```
+
+___
+
+#### Example
+
+```go
+files, _ := b2.ListAllFiles(bucketID)
+
+for _, file := range files.Files {
+    // do something with `file`
 }
 ```
