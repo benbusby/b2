@@ -11,6 +11,8 @@ import (
 
 const APIDeleteFile = "b2_delete_file_version"
 
+// DeleteFile removes a file from B2 using the file's ID and name. Both fields
+// are required, and are provided when a file finishes uploading.
 func (b2Auth Auth) DeleteFile(b2ID string, name string) bool {
 	reqBody := bytes.NewBuffer([]byte(fmt.Sprintf(`{
 		"fileId": "%s",
@@ -38,7 +40,7 @@ func (b2Auth Auth) DeleteFile(b2ID string, name string) bool {
 	} else if res.StatusCode >= 400 {
 		log.Printf("%s err: %d\n", APIDeleteFile, res.StatusCode)
 		resp, _ := httputil.DumpResponse(res, true)
-		fmt.Println(fmt.Sprintf("%s", resp))
+		log.Println(fmt.Sprintf("%s", resp))
 		return false
 	}
 

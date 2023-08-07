@@ -54,7 +54,7 @@ func download(req *http.Request) ([]byte, error) {
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
 
 	return body, nil
