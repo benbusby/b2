@@ -10,15 +10,6 @@ import (
 	"testing"
 )
 
-var account Auth
-
-func init() {
-	bucketKeyID := os.Getenv("B2_TEST_KEY_ID")
-	bucketKey := os.Getenv("B2_TEST_KEY")
-
-	account, _ = AuthorizeAccount(bucketKeyID, bucketKey)
-}
-
 func TestGetUploadURL(t *testing.T) {
 	bucketID := os.Getenv("B2_TEST_BUCKET_ID")
 	info, err := account.GetUploadURL(bucketID)
