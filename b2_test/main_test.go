@@ -51,12 +51,8 @@ func authorizeAccount() Auth {
 func cleanup() {
 	log.SetOutput(os.Stderr)
 
-	bucketKeyID := os.Getenv("B2_TEST_KEY_ID")
-	bucketKey := os.Getenv("B2_TEST_KEY")
 	bucketID := os.Getenv("B2_TEST_BUCKET_ID")
-
-	b2, _ := AuthorizeAccount(bucketKeyID, bucketKey)
-	files, err := b2.ListAllFiles(bucketID)
+	files, err := account.ListAllFiles(bucketID)
 	if err != nil {
 		log.Fatal("Unable to clean up testing files")
 	}
