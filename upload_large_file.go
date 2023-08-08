@@ -8,8 +8,8 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
-	"os"
 	"strconv"
+	"strings"
 )
 
 const APIStartLargeFile string = "b2_start_large_file"
@@ -86,12 +86,13 @@ type LargeFile struct {
 // The filename provided cannot change once the large file upload has begun.
 func (b2Auth Auth) StartLargeFile(
 	filename string,
+	bucketID string,
 ) (StartFile, error) {
 	reqBody := bytes.NewBuffer([]byte(fmt.Sprintf(`{
 		"bucketId": "%s",
 		"fileName": "%s",
 		"contentType": "b2/x-auto"
-	}`, os.Getenv("B2_BUCKET_ID"), filename)))
+	}`, bucketID, filename)))
 	reqURL := fmt.Sprintf(
 		"%s/%s/%s",
 		b2Auth.APIURL, utils.APIPrefix, APIStartLargeFile)
@@ -179,7 +180,8 @@ func (b2Auth Auth) GetUploadPartURL(
 // GetUploadPartURL. Each subsequent chunk should increment chunkNum, with the
 // first chunk starting at 1 (not 0). Each chunk should be provided with a
 // SHA1 checksum as well.
-func (b2PartInfo FilePartInfo) UploadFilePart(
+func UploadFilePart(
+	b2PartInfo FilePartInfo,
 	chunkNum int,
 	checksum string,
 	contents []byte,
@@ -259,12 +261,14 @@ func (b2Auth Auth) CancelLargeFile(fileID string) (bool, error) {
 // For example: "['checksum1', 'checksum2']"
 func (b2Auth Auth) FinishLargeFile(
 	fileID string,
-	checksums string,
+	checksums []string,
 ) (LargeFile, error) {
+	checksumsString := "[\"" + strings.Join(checksums, "\",\"") + "\"]"
+
 	reqBody := bytes.NewBuffer([]byte(fmt.Sprintf(`{
 		"fileId": "%s",
 		"partSha1Array": %s
-	}`, fileID, checksums)))
+	}`, fileID, checksumsString)))
 
 	reqURL := fmt.Sprintf(
 		"%s/%s/%s",
