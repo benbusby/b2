@@ -1,8 +1,9 @@
-package b2
+package b2_test
 
 import (
+	"crypto/sha1"
+	"fmt"
 	. "github.com/benbusby/b2"
-	"io"
 	"log"
 	"os"
 	"reflect"
@@ -10,6 +11,8 @@ import (
 )
 
 var account Auth
+
+const testString = "lorem ipsum"
 
 func TestMain(m *testing.M) {
 	// Ensure all required environment variables have been set
@@ -24,7 +27,7 @@ func TestMain(m *testing.M) {
 
 	account = authorizeAccount()
 
-	log.SetOutput(io.Discard)
+	//log.SetOutput(io.Discard)
 
 	code := m.Run()
 	cleanup()
@@ -57,11 +60,25 @@ func cleanup() {
 		log.Fatal("Unable to clean up testing files")
 	}
 
+	removed := 0
 	for _, file := range files.Files {
 		if !account.DeleteFile(file.FileID, file.FileName) {
 			log.Printf("Failed to delete file %s (%s)\n",
 				file.FileName,
 				file.FileID)
+		} else {
+			removed += 1
 		}
 	}
+
+	log.Printf("Removed %d test files from B2\n", removed)
+}
+
+func uploadTestFile(filename string) File {
+	info, _ := account.GetUploadURL(os.Getenv("B2_TEST_BUCKET_ID"))
+	data := []byte(testString)
+	checksum := fmt.Sprintf("%x", sha1.Sum(data))
+	file, _ := UploadFile(info, filename, checksum, data)
+
+	return file
 }

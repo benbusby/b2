@@ -1,4 +1,4 @@
-package b2
+package b2_test
 
 import (
 	"crypto/rand"
@@ -28,7 +28,7 @@ func TestUploadFile(t *testing.T) {
 	_, _ = rand.Read(data)
 
 	checksum := fmt.Sprintf("%x", sha1.Sum(data))
-	filename := fmt.Sprintf("%s.txt", checksum)
+	filename := "file.txt"
 
 	file, err := UploadFile(info, filename, checksum, data)
 
