@@ -1,4 +1,6 @@
 # b2
+[![Tests](https://github.com/benbusby/b2/actions/workflows/tests.yml/badge.svg)](https://github.com/benbusby/b2/actions/workflows/tests.yml)
+
 A Go library for the [Backblaze B2 Cloud Storage
 ](https://www.backblaze.com/b2/cloud-storage.html) API.
 
