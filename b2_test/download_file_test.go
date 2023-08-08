@@ -1,7 +1,6 @@
 package b2_test
 
 import (
-	. "github.com/benbusby/b2"
 	"testing"
 )
 
