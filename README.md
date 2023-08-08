@@ -8,7 +8,8 @@ A Go library for the [Backblaze B2 Cloud Storage
 ## Contents
 
 1. [API Support](#api-support)
-2. [Usage](#usage)
+2. [Install](#install)
+3. [Usage](#usage)
    1. [Authentication](#authentication)
    2. [Upload File](#upload-file)
    3. [Upload Large File](#upload-large-file)
@@ -39,6 +40,10 @@ The following API endpoints and functionality are currently supported:
 The project is being actively developed, and more functionality will likely
 be added in the near future. Existing functionality is unlikely to change
 and should be considered stable.
+
+## Install
+
+`go get github.com/benbusby/b2`
 
 ## Usage
 
