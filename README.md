@@ -203,7 +203,7 @@ Finish large file:
 ```go
 func (b2Auth Auth) FinishLargeFile(
 	fileID string,
-	checksums string,
+	checksums []string,
 ) (LargeFile, error)
 ```
 
@@ -248,9 +248,7 @@ for i := 0; i < dataSize; i++ {
 	}
 }
 
-checksumsStr := "[\"" + strings.Join(checksums, "\",\"") + "\"]"
-
-err = b2.FinishLargeFile(b2PartUploader.FileID, checksumsStr)
+err = b2.FinishLargeFile(b2PartUploader.FileID, checksums)
 if err != nil {
 	panic(err)
 }
