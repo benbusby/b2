@@ -44,7 +44,7 @@ func AuthorizeAccount(
 
 	req.Header = http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Basic: %s", authString)},
+		"Authorization": {fmt.Sprintf("Basic %s", authString)},
 	}
 
 	res, err := utils.Client.Do(req)
