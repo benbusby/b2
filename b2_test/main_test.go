@@ -11,10 +11,14 @@ import (
 )
 
 var account Auth
+var dummyAccount Auth
 
+const localUploadsPath = "./test"
 const testString = "lorem ipsum"
 
 func TestMain(m *testing.M) {
+	var err error
+
 	// Ensure all required environment variables have been set
 	// before running tests
 	if len(os.Getenv("B2_TEST_KEY_ID")) == 0 {
@@ -26,6 +30,10 @@ func TestMain(m *testing.M) {
 	}
 
 	account = authorizeAccount()
+	dummyAccount, err = AuthorizeDummyAccount(localUploadsPath)
+	if err != nil {
+		log.Fatalf("Failed to setup dummy account")
+	}
 
 	//log.SetOutput(io.Discard)
 
@@ -72,6 +80,22 @@ func cleanup() {
 	}
 
 	log.Printf("Removed %d test files from B2\n", removed)
+
+	localFiles, err := dummyAccount.ListAllFiles("")
+	if err != nil {
+		log.Fatal("Unable to list local test files")
+	}
+
+	locallyRemoved := 0
+	for _, file := range localFiles.Files {
+		if !dummyAccount.DeleteFile(file.FileID, file.FileName) {
+			log.Printf("Failed to delete local test file %s", file.FileName)
+		} else {
+			locallyRemoved += 1
+		}
+	}
+
+	log.Printf("Removed %d local test files\n", locallyRemoved)
 }
 
 func uploadTestFile(filename string) File {
@@ -79,6 +103,18 @@ func uploadTestFile(filename string) File {
 	data := []byte(testString)
 	checksum := fmt.Sprintf("%x", sha1.Sum(data))
 	file, _ := UploadFile(info, filename, checksum, data)
+
+	return file
+}
+
+func uploadLocalTestFile(filename string) File {
+	info, _ := dummyAccount.GetUploadURL("")
+	data := []byte(testString)
+	checksum := fmt.Sprintf("%x", sha1.Sum(data))
+	file, err := UploadFile(info, filename, checksum, data)
+	if err != nil {
+		log.Fatalf("Failed to create local file: %v", err)
+	}
 
 	return file
 }

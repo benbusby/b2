@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"strings"
 )
 
@@ -27,6 +28,8 @@ type Auth struct {
 	DownloadURL         string `json:"downloadUrl"`
 	RecommendedPartSize int    `json:"recommendedPartSize"`
 	S3APIURL            string `json:"s3ApiUrl"`
+	Dummy               bool
+	LocalPath           string
 }
 
 func AuthorizeAccount(
@@ -69,4 +72,21 @@ func AuthorizeAccount(
 	}
 
 	return auth, nil
+}
+
+// AuthorizeDummyAccount allows using the B2 library as normal, but having
+// all files saved and retrieved from a specific folder on the machine.
+func AuthorizeDummyAccount(path string) (Auth, error) {
+	if _, err := os.Stat(path); err != nil {
+		// Attempt to create directory
+		err = os.MkdirAll(path, 0755)
+		if err != nil {
+			return Auth{}, err
+		}
+	}
+
+	return Auth{
+		Dummy:     true,
+		LocalPath: path,
+	}, nil
 }

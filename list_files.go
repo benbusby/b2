@@ -7,44 +7,48 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"os"
+	"strings"
 )
 
 const APIListFileVersions = "b2_list_file_versions"
 
+type FileListItem struct {
+	AccountID     string `json:"accountId"`
+	Action        string `json:"action"`
+	BucketID      string `json:"bucketId"`
+	ContentLength int    `json:"contentLength"`
+	ContentSha1   string `json:"contentSha1"`
+	ContentMd5    string `json:"contentMd5"`
+	ContentType   string `json:"contentType"`
+	FileID        string `json:"fileId"`
+	FileInfo      struct {
+		SrcLastModifiedMillis string `json:"src_last_modified_millis"`
+	} `json:"fileInfo"`
+	FileName      string `json:"fileName"`
+	FileRetention struct {
+		IsClientAuthorizedToRead bool `json:"isClientAuthorizedToRead"`
+		Value                    struct {
+			Mode                 string `json:"mode"`
+			RetainUntilTimestamp string `json:"retainUntilTimestamp"`
+		} `json:"value"`
+	} `json:"fileRetention"`
+	LegalHold struct {
+		IsClientAuthorizedToRead bool   `json:"isClientAuthorizedToRead"`
+		Value                    string `json:"value"`
+	} `json:"legalHold"`
+	ReplicationStatus    string `json:"replicationStatus"`
+	ServerSideEncryption struct {
+		Algorithm string `json:"algorithm"`
+		Mode      string `json:"mode"`
+	} `json:"serverSideEncryption"`
+	UploadTimestamp int `json:"uploadTimestamp"`
+}
+
 type FileList struct {
-	Files []struct {
-		AccountID     string `json:"accountId"`
-		Action        string `json:"action"`
-		BucketID      string `json:"bucketId"`
-		ContentLength int    `json:"contentLength"`
-		ContentSha1   string `json:"contentSha1"`
-		ContentMd5    string `json:"contentMd5"`
-		ContentType   string `json:"contentType"`
-		FileID        string `json:"fileId"`
-		FileInfo      struct {
-			SrcLastModifiedMillis string `json:"src_last_modified_millis"`
-		} `json:"fileInfo"`
-		FileName      string `json:"fileName"`
-		FileRetention struct {
-			IsClientAuthorizedToRead bool `json:"isClientAuthorizedToRead"`
-			Value                    struct {
-				Mode                 string `json:"mode"`
-				RetainUntilTimestamp string `json:"retainUntilTimestamp"`
-			} `json:"value"`
-		} `json:"fileRetention"`
-		LegalHold struct {
-			IsClientAuthorizedToRead bool   `json:"isClientAuthorizedToRead"`
-			Value                    string `json:"value"`
-		} `json:"legalHold"`
-		ReplicationStatus    string `json:"replicationStatus"`
-		ServerSideEncryption struct {
-			Algorithm string `json:"algorithm"`
-			Mode      string `json:"mode"`
-		} `json:"serverSideEncryption"`
-		UploadTimestamp int `json:"uploadTimestamp"`
-	} `json:"files"`
-	NextFileName string `json:"nextFileName"`
-	NextFileID   string `json:"nextFileId"`
+	Files        []FileListItem `json:"files"`
+	NextFileName string         `json:"nextFileName"`
+	NextFileID   string         `json:"nextFileId"`
 }
 
 // ListAllFiles is a helper function for simply fetching all available files in
@@ -71,6 +75,10 @@ func (b2Auth Auth) ListFiles(
 	startName string,
 	startID string,
 ) (FileList, error) {
+	if b2Auth.Dummy {
+		return listLocalFiles(b2Auth.LocalPath)
+	}
+
 	reqURL := fmt.Sprintf(
 		"%s/%s/%s",
 		b2Auth.APIURL, utils.APIPrefix, APIListFileVersions)
@@ -115,4 +123,32 @@ func (b2Auth Auth) ListFiles(
 	}
 
 	return b2FileList, nil
+}
+
+// listLocalFiles returns all files within the specified path. Unlike the
+// B2 version of listing files, listing local files will return all files
+// within the directory.
+func listLocalFiles(path string) (FileList, error) {
+	dir, err := os.ReadDir(path)
+	if err != nil {
+		return FileList{}, err
+	}
+
+	var fileList []FileListItem
+	for _, file := range dir {
+		name := file.Name()
+		filePath := fmt.Sprintf("%s/%s", strings.TrimSuffix(path, "/"), name)
+		stat, err := os.Stat(filePath)
+		if err != nil {
+			return FileList{}, err
+		}
+
+		fileList = append(fileList, FileListItem{
+			FileName:      name,
+			FileID:        name,
+			ContentLength: int(stat.Size()),
+		})
+	}
+
+	return FileList{Files: fileList}, nil
 }

@@ -7,6 +7,7 @@ import (
 	. "github.com/benbusby/b2"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -36,5 +37,26 @@ func TestUploadFile(t *testing.T) {
 		t.Fatal("Failed to upload file to B2")
 	} else if reflect.ValueOf(file).IsZero() {
 		t.Fatal("Empty response from B2")
+	}
+}
+
+func TestUploadLocalFile(t *testing.T) {
+	info, _ := dummyAccount.GetUploadURL("")
+
+	data := make([]byte, 10)
+	_, _ = rand.Read(data)
+
+	checksum := ""
+	filename := "local-file.txt"
+	path := fmt.Sprintf("%s/%s",
+		strings.TrimSuffix(dummyAccount.LocalPath, "/"),
+		filename)
+
+	_, err := UploadFile(info, filename, checksum, data)
+
+	if err != nil {
+		t.Fatalf("Failed to \"upload\" file locally: %v", err)
+	} else if _, err := os.Stat(path); err != nil {
+		t.Fatal("Local file does not exist after writing")
 	}
 }

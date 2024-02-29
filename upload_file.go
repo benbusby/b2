@@ -8,7 +8,9 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"strconv"
+	"strings"
 )
 
 const APIGetUploadURL string = "b2_get_upload_url"
@@ -46,12 +48,20 @@ type FileInfo struct {
 	BucketID           string `json:"bucketId"`
 	UploadURL          string `json:"uploadUrl"`
 	AuthorizationToken string `json:"authorizationToken"`
+	Dummy              bool
 }
 
 // GetUploadURL returns a FileInfo struct containing the URL to use
 // for uploading a file, the ID of the bucket the file will be put
 // in, and a token for authenticating the upload request.
 func (b2Auth Auth) GetUploadURL(bucketID string) (FileInfo, error) {
+	if b2Auth.Dummy {
+		return FileInfo{
+			UploadURL: b2Auth.LocalPath,
+			Dummy:     true,
+		}, nil
+	}
+
 	reqURL := fmt.Sprintf(
 		"%s/%s/%s",
 		b2Auth.APIURL, utils.APIPrefix, APIGetUploadURL)
@@ -103,6 +113,10 @@ func UploadFile(
 	checksum string,
 	contents []byte,
 ) (File, error) {
+	if b2Info.Dummy {
+		return uploadLocalFile(b2Info, filename, contents)
+	}
+
 	req, err := http.NewRequest(
 		"POST",
 		b2Info.UploadURL,
@@ -140,4 +154,36 @@ func UploadFile(
 	}
 
 	return b2File, nil
+}
+
+// uploadLocalFile skips the usual uploading to a B2 bucket and instead
+// writes the file to a path specified in b2Info.UploadURL
+func uploadLocalFile(
+	b2Info FileInfo,
+	filename string,
+	contents []byte,
+) (File, error) {
+	if _, err := os.Stat(b2Info.UploadURL); err != nil {
+		return File{}, err
+	}
+
+	path := fmt.Sprintf("%s/%s",
+		strings.TrimSuffix(b2Info.UploadURL, "/"),
+		filename)
+
+	file, err := os.Create(path)
+	if err != nil {
+		return File{}, err
+	}
+
+	_, err = file.Write(contents)
+	if err != nil {
+		return File{}, err
+	}
+
+	return File{
+		FileID:        filename,
+		ContentLength: len(contents),
+		FileName:      filename,
+	}, nil
 }

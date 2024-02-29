@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"os"
+	"strings"
 )
 
 const APIDownloadById string = "b2_download_file_by_id"
@@ -68,6 +70,14 @@ func (b2Auth Auth) PartialDownloadById(
 	begin int,
 	end int,
 ) ([]byte, error) {
+	if b2Auth.Dummy {
+		return partiallyDownloadLocalFile(
+			id,
+			b2Auth.LocalPath,
+			begin,
+			end)
+	}
+
 	req, err := setupDownload(b2Auth.APIURL, id)
 	if err != nil {
 		log.Fatalf("Error setting up download: %v", err)
@@ -86,6 +96,10 @@ func (b2Auth Auth) PartialDownloadById(
 
 // DownloadById downloads an entire file (regardless of size) from B2.
 func (b2Auth Auth) DownloadById(id string) ([]byte, error) {
+	if b2Auth.Dummy {
+		return downloadLocalFile(id, b2Auth.LocalPath)
+	}
+
 	req, err := setupDownload(b2Auth.APIURL, id)
 	if err != nil {
 		log.Fatalf("Error setting up download: %v", err)
@@ -97,4 +111,39 @@ func (b2Auth Auth) DownloadById(id string) ([]byte, error) {
 	}
 
 	return download(req)
+}
+
+// downloadLocalFile "downloads" a local file from the specified path + ID
+// rather than fetching from B2.
+func downloadLocalFile(id string, path string) ([]byte, error) {
+	fullPath := fmt.Sprintf("%s/%s", strings.TrimSuffix(path, "/"), id)
+	return os.ReadFile(fullPath)
+}
+
+// partiallyDownloadLocalFile retrieves a portion of a local file rather than
+// fetching it from B2.
+func partiallyDownloadLocalFile(
+	id string,
+	path string,
+	begin int,
+	end int,
+) ([]byte, error) {
+	fullPath := fmt.Sprintf("%s/%s", strings.TrimSuffix(path, "/"), id)
+	file, err := os.Open(fullPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// B2 downloads encapsulate the end byte as well, whereas local reads
+	// stop at the end byte. Modifying the end by +1 accounts for this
+	// difference in order to get the download behavior to act the same.
+	end += 1
+
+	contents := make([]byte, end-begin)
+	_, err = file.ReadAt(contents, int64(begin))
+	if err != nil {
+		return nil, err
+	}
+
+	return contents, err
 }

@@ -24,3 +24,11 @@ func TestDeleteFile(t *testing.T) {
 		t.Fatal("Failed to delete file from B2")
 	}
 }
+
+func TestDeleteLocalFile(t *testing.T) {
+	file := uploadLocalTestFile("delete-this.txt")
+
+	if !dummyAccount.DeleteFile(file.FileID, file.FileName) {
+		t.Fatal("Failed to delete local file")
+	}
+}
