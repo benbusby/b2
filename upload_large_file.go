@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -52,6 +53,7 @@ type FilePartInfo struct {
 	FileID             string `json:"fileId"`
 	UploadURL          string `json:"uploadUrl"`
 	AuthorizationToken string `json:"authorizationToken"`
+	Dummy              bool
 }
 
 // LargeFile represents the file object created by FinishLargeFile
@@ -88,6 +90,10 @@ func (b2Auth Auth) StartLargeFile(
 	filename string,
 	bucketID string,
 ) (StartFile, error) {
+	if b2Auth.Dummy {
+		return StartFile{FileID: filename, FileName: filename}, nil
+	}
+
 	reqBody := bytes.NewBuffer([]byte(fmt.Sprintf(`{
 		"bucketId": "%s",
 		"fileName": "%s",
@@ -135,6 +141,14 @@ func (b2Auth Auth) StartLargeFile(
 func (b2Auth Auth) GetUploadPartURL(
 	b2File StartFile,
 ) (FilePartInfo, error) {
+	if b2Auth.Dummy {
+		return FilePartInfo{
+			FileID:    b2File.FileID,
+			UploadURL: b2Auth.LocalPath,
+			Dummy:     true,
+		}, nil
+	}
+
 	reqURL := fmt.Sprintf(
 		"%s/%s/%s",
 		b2Auth.APIURL, utils.APIPrefix, APIGetUploadPartURL)
@@ -186,6 +200,10 @@ func UploadFilePart(
 	checksum string,
 	contents []byte,
 ) error {
+	if b2PartInfo.Dummy {
+		return uploadLocalFilePart(b2PartInfo, contents)
+	}
+
 	req, err := http.NewRequest(
 		"POST",
 		b2PartInfo.UploadURL,
@@ -222,6 +240,10 @@ func UploadFilePart(
 // deleted, otherwise false.
 // Requires the fileID returned from StartLargeFile.
 func (b2Auth Auth) CancelLargeFile(fileID string) (bool, error) {
+	if b2Auth.Dummy {
+		return cancelLocalLargeFile(fileID, b2Auth.LocalPath)
+	}
+
 	reqBody := bytes.NewBuffer([]byte(fmt.Sprintf(`{
 		"fileId": "%s"
 	}`, fileID)))
@@ -263,6 +285,10 @@ func (b2Auth Auth) FinishLargeFile(
 	fileID string,
 	checksums []string,
 ) (LargeFile, error) {
+	if b2Auth.Dummy {
+		return finishLargeLocalFile(fileID, b2Auth.LocalPath)
+	}
+
 	checksumsString := "[\"" + strings.Join(checksums, "\",\"") + "\"]"
 
 	reqBody := bytes.NewBuffer([]byte(fmt.Sprintf(`{
@@ -305,4 +331,56 @@ func (b2Auth Auth) FinishLargeFile(
 	}
 
 	return largeFile, nil
+}
+
+// uploadLocalFilePart writes part of a file to the machine instead of to a B2
+// bucket
+func uploadLocalFilePart(info FilePartInfo, contents []byte) error {
+	filename := fmt.Sprintf("%s/%s", strings.TrimSuffix(info.UploadURL, "/"), info.FileID)
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		return err
+	}
+
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			log.Println("Failed to close partial local file")
+		}
+	}(f)
+
+	_, err = f.Write(contents)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// cancelLocalLargeFile cancels an in-progress large file being written to
+// disk by deleting it.
+func cancelLocalLargeFile(id string, path string) (bool, error) {
+	if len(id) == 0 {
+		log.Println("Skipping attempt to cancel a large file upload " +
+			"with no id")
+		return false, nil
+	}
+
+	return deleteLocalFile(id, path), nil
+}
+
+// finishLargeLocalFile completes the process of uploading a file chunk-by-chunk
+// to the local machine
+func finishLargeLocalFile(id string, path string) (LargeFile, error) {
+	filePath := fmt.Sprintf("%s/%s", strings.TrimSuffix(path, "/"), id)
+	stat, err := os.Stat(filePath)
+	if err != nil {
+		return LargeFile{}, err
+	}
+
+	return LargeFile{
+		FileID:        id,
+		FileName:      id,
+		ContentLength: int(stat.Size()),
+	}, nil
 }
