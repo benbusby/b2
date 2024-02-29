@@ -23,7 +23,7 @@ func setupDownload(apiURL string, fileID string) (*http.Request, error) {
 	req, err := http.NewRequest("GET", reqURL, nil)
 
 	if err != nil {
-		log.Printf("Error creating new HTTP request: %v\n", err)
+		log.Printf("B2Error creating new HTTP request: %v\n", err)
 		return nil, err
 	}
 
@@ -39,18 +39,18 @@ func setupDownload(apiURL string, fileID string) (*http.Request, error) {
 func download(req *http.Request) ([]byte, error) {
 	res, err := utils.Client.Do(req)
 	if err != nil {
-		log.Printf("Error requesting B2 download: %v\n", err)
+		log.Printf("B2Error requesting B2 download: %v\n", err)
 		return nil, err
 	} else if res.StatusCode >= 400 {
 		resp, _ := httputil.DumpResponse(res, true)
 		fmt.Println(fmt.Sprintf("%s", resp))
-		return nil, utils.Error
+		return nil, utils.B2Error
 	}
 
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			fmt.Println("Error reading response body")
+			fmt.Println("B2Error reading response body")
 		}
 	}(res.Body)
 
@@ -80,7 +80,7 @@ func (b2Auth Auth) PartialDownloadById(
 
 	req, err := setupDownload(b2Auth.APIURL, id)
 	if err != nil {
-		log.Fatalf("Error setting up download: %v", err)
+		log.Fatalf("B2Error setting up download: %v", err)
 		return nil, err
 	}
 
@@ -102,7 +102,7 @@ func (b2Auth Auth) DownloadById(id string) ([]byte, error) {
 
 	req, err := setupDownload(b2Auth.APIURL, id)
 	if err != nil {
-		log.Fatalf("Error setting up download: %v", err)
+		log.Fatalf("B2Error setting up download: %v", err)
 		return nil, err
 	}
 

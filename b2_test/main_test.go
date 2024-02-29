@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	. "github.com/benbusby/b2"
+	"github.com/benbusby/b2/utils"
 	"log"
 	"os"
 	"reflect"
@@ -98,6 +99,30 @@ func cleanup() {
 	log.Printf("Removed %d local test files\n", locallyRemoved)
 }
 
+func TestLimitedDummyAccount(t *testing.T) {
+	// Create dummy account with 1 byte storage limit
+	limDumAcct, err := AuthorizeLimitedDummyAccount(localUploadsPath, 1)
+	if err != nil {
+		t.Fatal("Failed to set up limited dummy account")
+	}
+
+	info, _ := limDumAcct.GetUploadURL("")
+	data := []byte(testString)
+	checksum := ""
+	filename := "too-big.txt"
+	filepath := fmt.Sprintf("%s/%s", info.UploadURL, filename)
+
+	_, err = UploadFile(info, filename, checksum, data)
+	if err != utils.StorageError {
+		log.Fatalf("Did not receive expected error: "+
+			"expected=%v, actual=%v", utils.StorageError, err)
+	} else if _, err := os.Stat(filepath); err == nil {
+		log.Fatal("File should have failed to write, but was written " +
+			"without any errors")
+	}
+
+}
+
 func uploadTestFile(filename string) File {
 	info, _ := account.GetUploadURL(os.Getenv("B2_TEST_BUCKET_ID"))
 	data := []byte(testString)
@@ -110,7 +135,7 @@ func uploadTestFile(filename string) File {
 func uploadLocalTestFile(filename string) File {
 	info, _ := dummyAccount.GetUploadURL("")
 	data := []byte(testString)
-	checksum := fmt.Sprintf("%x", sha1.Sum(data))
+	checksum := ""
 	file, err := UploadFile(info, filename, checksum, data)
 	if err != nil {
 		log.Fatalf("Failed to create local file: %v", err)

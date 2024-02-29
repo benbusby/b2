@@ -31,7 +31,7 @@ func (b2Auth Auth) DeleteFile(b2ID string, name string) bool {
 
 	req, err := http.NewRequest("POST", reqURL, reqBody)
 	if err != nil {
-		log.Printf("Error creating new HTTP request: %v\n", err)
+		log.Printf("B2Error creating new HTTP request: %v\n", err)
 		return false
 	}
 

@@ -54,6 +54,7 @@ type FilePartInfo struct {
 	UploadURL          string `json:"uploadUrl"`
 	AuthorizationToken string `json:"authorizationToken"`
 	Dummy              bool
+	StorageMaximum     int
 }
 
 // LargeFile represents the file object created by FinishLargeFile
@@ -105,7 +106,7 @@ func (b2Auth Auth) StartLargeFile(
 
 	req, err := http.NewRequest("POST", reqURL, reqBody)
 	if err != nil {
-		log.Printf("Error creating new HTTP request: %v\n", err)
+		log.Printf("B2Error creating new HTTP request: %v\n", err)
 		return StartFile{}, err
 	}
 
@@ -116,19 +117,19 @@ func (b2Auth Auth) StartLargeFile(
 
 	res, err := utils.Client.Do(req)
 	if err != nil {
-		log.Printf("Error starting B2 file: %v\n", err)
+		log.Printf("B2Error starting B2 file: %v\n", err)
 		return StartFile{}, err
 	} else if res.StatusCode >= 400 {
 		log.Printf("\n%s %s\n", "POST", reqURL)
 		resp, _ := httputil.DumpResponse(res, true)
 		log.Println(fmt.Sprintf("%s", resp))
-		return StartFile{}, utils.Error
+		return StartFile{}, utils.B2Error
 	}
 
 	var file StartFile
 	err = json.NewDecoder(res.Body).Decode(&file)
 	if err != nil {
-		log.Printf("Error decoding B2 file init: %v", err)
+		log.Printf("B2Error decoding B2 file init: %v", err)
 		return StartFile{}, err
 	}
 
@@ -143,9 +144,10 @@ func (b2Auth Auth) GetUploadPartURL(
 ) (FilePartInfo, error) {
 	if b2Auth.Dummy {
 		return FilePartInfo{
-			FileID:    b2File.FileID,
-			UploadURL: b2Auth.LocalPath,
-			Dummy:     true,
+			FileID:         b2File.FileID,
+			UploadURL:      b2Auth.LocalPath,
+			Dummy:          true,
+			StorageMaximum: b2Auth.StorageMaximum,
 		}, nil
 	}
 
@@ -160,7 +162,7 @@ func (b2Auth Auth) GetUploadPartURL(
 	req.URL.RawQuery = q.Encode()
 
 	if err != nil {
-		log.Printf("Error creating new HTTP request: %v\n", err)
+		log.Printf("B2Error creating new HTTP request: %v\n", err)
 		return FilePartInfo{}, err
 	}
 
@@ -171,19 +173,19 @@ func (b2Auth Auth) GetUploadPartURL(
 
 	res, err := utils.Client.Do(req)
 	if err != nil {
-		log.Printf("Error getting B2 upload url: %v\n", err)
+		log.Printf("B2Error getting B2 upload url: %v\n", err)
 		return FilePartInfo{}, err
 	} else if res.StatusCode >= 400 {
 		log.Printf("\n%s %s\n", "GET", reqURL)
 		resp, _ := httputil.DumpResponse(res, true)
 		log.Println(fmt.Sprintf("%s", resp))
-		return FilePartInfo{}, utils.Error
+		return FilePartInfo{}, utils.B2Error
 	}
 
 	var upload FilePartInfo
 	err = json.NewDecoder(res.Body).Decode(&upload)
 	if err != nil {
-		log.Printf("Error decoding B2 upload part info: %v", err)
+		log.Printf("B2Error decoding B2 upload part info: %v", err)
 		return FilePartInfo{}, err
 	}
 
@@ -209,7 +211,7 @@ func UploadFilePart(
 		b2PartInfo.UploadURL,
 		bytes.NewBuffer(contents))
 	if err != nil {
-		log.Printf("Error creating upload request: %v\n", err)
+		log.Printf("B2Error creating upload request: %v\n", err)
 		return err
 	}
 
@@ -223,13 +225,13 @@ func UploadFilePart(
 	res, err := utils.Client.Do(req)
 
 	if err != nil {
-		log.Printf("Error uploading file to B2: %v\n", err)
+		log.Printf("B2Error uploading file to B2: %v\n", err)
 		return err
 	} else if res.StatusCode >= 400 {
 		log.Printf("\n%s %s\n", "POST", b2PartInfo.UploadURL)
 		resp, _ := httputil.DumpResponse(res, true)
 		log.Println(fmt.Sprintf("%s", resp))
-		return utils.Error
+		return utils.B2Error
 	}
 
 	return nil
@@ -254,7 +256,7 @@ func (b2Auth Auth) CancelLargeFile(fileID string) (bool, error) {
 
 	req, err := http.NewRequest("POST", reqURL, reqBody)
 	if err != nil {
-		log.Printf("Error creating new HTTP request: %v\n", err)
+		log.Printf("B2Error creating new HTTP request: %v\n", err)
 		return false, err
 	}
 
@@ -265,13 +267,13 @@ func (b2Auth Auth) CancelLargeFile(fileID string) (bool, error) {
 	res, err := utils.Client.Do(req)
 
 	if err != nil {
-		log.Printf("Error canceling B2 large file: %v\n", err)
+		log.Printf("B2Error canceling B2 large file: %v\n", err)
 		return false, err
 	} else if res.StatusCode >= 400 {
 		log.Printf("\n%s %s\n", "POST", reqURL)
 		resp, _ := httputil.DumpResponse(res, true)
 		log.Println(fmt.Sprintf("%s", resp))
-		return false, utils.Error
+		return false, utils.B2Error
 	}
 
 	return true, nil
@@ -302,7 +304,7 @@ func (b2Auth Auth) FinishLargeFile(
 
 	req, err := http.NewRequest("POST", reqURL, reqBody)
 	if err != nil {
-		log.Printf("Error creating new HTTP request: %v\n", err)
+		log.Printf("B2Error creating new HTTP request: %v\n", err)
 		return LargeFile{}, err
 	}
 
@@ -314,19 +316,19 @@ func (b2Auth Auth) FinishLargeFile(
 	res, err := utils.Client.Do(req)
 
 	if err != nil {
-		log.Printf("Error finishing B2 upload: %v\n", err)
+		log.Printf("B2Error finishing B2 upload: %v\n", err)
 		return LargeFile{}, err
 	} else if res.StatusCode >= 400 {
 		log.Printf("\n%s %s\n", "POST", reqURL)
 		resp, _ := httputil.DumpResponse(res, true)
 		log.Println(fmt.Sprintf("%s", resp))
-		return LargeFile{}, utils.Error
+		return LargeFile{}, utils.B2Error
 	}
 
 	var largeFile LargeFile
 	err = json.NewDecoder(res.Body).Decode(&largeFile)
 	if err != nil {
-		log.Printf("Error decoding B2 large file info: %v", err)
+		log.Printf("B2Error decoding B2 large file info: %v", err)
 		return LargeFile{}, err
 	}
 
@@ -336,6 +338,23 @@ func (b2Auth Auth) FinishLargeFile(
 // uploadLocalFilePart writes part of a file to the machine instead of to a B2
 // bucket
 func uploadLocalFilePart(info FilePartInfo, contents []byte) error {
+	if info.StorageMaximum > 0 {
+		dirSize, err := utils.CheckDirSize(info.UploadURL)
+		if err != nil {
+			return err
+		}
+
+		if dirSize+int64(len(contents)) > int64(info.StorageMaximum) {
+			success, _ := cancelLocalLargeFile(info.FileID, info.UploadURL)
+			if !success {
+				log.Printf("Failed to cancel local file that " +
+					"would hav exceeded the specified max " +
+					"storage")
+			}
+			return utils.StorageError
+		}
+	}
+
 	filename := fmt.Sprintf("%s/%s", strings.TrimSuffix(info.UploadURL, "/"), info.FileID)
 	f, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {

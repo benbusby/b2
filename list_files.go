@@ -107,18 +107,18 @@ func (b2Auth Auth) ListFiles(
 
 	res, err := utils.Client.Do(req)
 	if err != nil {
-		log.Printf("Error requesting B2 file list: %v\n", err)
+		log.Printf("B2Error requesting B2 file list: %v\n", err)
 		return FileList{}, err
 	} else if res.StatusCode >= 400 {
 		resp, _ := httputil.DumpResponse(res, true)
 		log.Println(fmt.Sprintf("%s", resp))
-		return FileList{}, utils.Error
+		return FileList{}, utils.B2Error
 	}
 
 	var b2FileList FileList
 	err = json.NewDecoder(res.Body).Decode(&b2FileList)
 	if err != nil {
-		log.Printf("Error decoding B2 file list: %v", err)
+		log.Printf("B2Error decoding B2 file list: %v", err)
 		return FileList{}, err
 	}
 

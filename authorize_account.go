@@ -30,6 +30,7 @@ type Auth struct {
 	S3APIURL            string `json:"s3ApiUrl"`
 	Dummy               bool
 	LocalPath           string
+	StorageMaximum      int
 }
 
 func AuthorizeAccount(
@@ -38,7 +39,7 @@ func AuthorizeAccount(
 ) (Auth, error) {
 	req, err := http.NewRequest("GET", AuthURL, nil)
 	if err != nil {
-		log.Printf("Error creating new HTTP request: %v", err)
+		log.Printf("B2Error creating new HTTP request: %v", err)
 		return Auth{}, err
 	}
 
@@ -52,7 +53,7 @@ func AuthorizeAccount(
 
 	res, err := utils.Client.Do(req)
 	if err != nil {
-		log.Printf("Error sending B2 auth request: %v", err)
+		log.Printf("B2Error sending B2 auth request: %v", err)
 		return Auth{}, err
 	} else if res.StatusCode >= 400 {
 		log.Printf("%s -- error: %d\n", AuthURL, res.StatusCode)
@@ -63,7 +64,7 @@ func AuthorizeAccount(
 	var auth Auth
 	err = json.NewDecoder(res.Body).Decode(&auth)
 	if err != nil {
-		log.Printf("Error decoding B2 auth: %v", err)
+		log.Printf("B2Error decoding B2 auth: %v", err)
 		return Auth{}, err
 	}
 
@@ -89,4 +90,17 @@ func AuthorizeDummyAccount(path string) (Auth, error) {
 		Dummy:     true,
 		LocalPath: path,
 	}, nil
+}
+
+// AuthorizeLimitedDummyAccount functions the same as AuthorizeDummyAccount, but
+// imposes an additional limitation for the total size of the directory specified
+// in the "path" variable.
+func AuthorizeLimitedDummyAccount(path string, storageLimit int) (Auth, error) {
+	auth, err := AuthorizeDummyAccount(path)
+	if err != nil {
+		return Auth{}, err
+	}
+
+	auth.StorageMaximum = storageLimit
+	return auth, nil
 }

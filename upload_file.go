@@ -49,6 +49,7 @@ type FileInfo struct {
 	UploadURL          string `json:"uploadUrl"`
 	AuthorizationToken string `json:"authorizationToken"`
 	Dummy              bool
+	StorageMaximum     int
 }
 
 // GetUploadURL returns a FileInfo struct containing the URL to use
@@ -57,8 +58,9 @@ type FileInfo struct {
 func (b2Auth Auth) GetUploadURL(bucketID string) (FileInfo, error) {
 	if b2Auth.Dummy {
 		return FileInfo{
-			UploadURL: b2Auth.LocalPath,
-			Dummy:     true,
+			UploadURL:      b2Auth.LocalPath,
+			StorageMaximum: b2Auth.StorageMaximum,
+			Dummy:          true,
 		}, nil
 	}
 
@@ -73,7 +75,7 @@ func (b2Auth Auth) GetUploadURL(bucketID string) (FileInfo, error) {
 	req.URL.RawQuery = q.Encode()
 
 	if err != nil {
-		log.Printf("Error creating new HTTP request: %v\n", err)
+		log.Printf("B2Error creating new HTTP request: %v\n", err)
 		return FileInfo{}, err
 	}
 
@@ -84,19 +86,19 @@ func (b2Auth Auth) GetUploadURL(bucketID string) (FileInfo, error) {
 
 	res, err := utils.Client.Do(req)
 	if err != nil {
-		log.Printf("Error requesting B2 upload URL: %v\n", err)
+		log.Printf("B2Error requesting B2 upload URL: %v\n", err)
 		return FileInfo{}, err
 	} else if res.StatusCode >= 400 {
 		log.Printf("\n%s %s\n", "GET", reqURL)
 		resp, _ := httputil.DumpResponse(res, true)
 		log.Println(fmt.Sprintf("%s", resp))
-		return FileInfo{}, utils.Error
+		return FileInfo{}, utils.B2Error
 	}
 
 	var upload FileInfo
 	err = json.NewDecoder(res.Body).Decode(&upload)
 	if err != nil {
-		log.Printf("Error decoding B2 upload info: %v", err)
+		log.Printf("B2Error decoding B2 upload info: %v", err)
 		return FileInfo{}, err
 	}
 
@@ -122,7 +124,7 @@ func UploadFile(
 		b2Info.UploadURL,
 		bytes.NewBuffer(contents))
 	if err != nil {
-		log.Printf("Error creating upload request: %v\n", err)
+		log.Printf("B2Error creating upload request: %v\n", err)
 		return File{}, err
 	}
 
@@ -137,19 +139,19 @@ func UploadFile(
 	res, err := utils.Client.Do(req)
 
 	if err != nil {
-		log.Printf("Error uploading file chunk to B2: %v\n", err)
+		log.Printf("B2Error uploading file chunk to B2: %v\n", err)
 		return File{}, err
 	} else if res.StatusCode >= 400 {
 		log.Printf("\n%s %s\n", "POST", b2Info.UploadURL)
 		resp, _ := httputil.DumpResponse(res, true)
 		log.Println(fmt.Sprintf("%s", resp))
-		return File{}, utils.Error
+		return File{}, utils.B2Error
 	}
 
 	var b2File File
 	err = json.NewDecoder(res.Body).Decode(&b2File)
 	if err != nil {
-		log.Printf("Error decoding B2 file: %v", err)
+		log.Printf("B2Error decoding B2 file: %v", err)
 		return File{}, err
 	}
 
@@ -165,6 +167,17 @@ func uploadLocalFile(
 ) (File, error) {
 	if _, err := os.Stat(b2Info.UploadURL); err != nil {
 		return File{}, err
+	}
+
+	if b2Info.StorageMaximum > 0 {
+		dirSize, err := utils.CheckDirSize(b2Info.UploadURL)
+		if err != nil {
+			return File{}, err
+		}
+
+		if dirSize+int64(len(contents)) > int64(b2Info.StorageMaximum) {
+			return File{}, utils.StorageError
+		}
 	}
 
 	path := fmt.Sprintf("%s/%s",
