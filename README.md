@@ -9,7 +9,8 @@ A Go library for the [Backblaze B2 Cloud Storage
 
 1. [API Support](#api-support)
 2. [Install](#install)
-3. [Usage](#usage)
+3. [Setup](#setup)
+4. [Usage](#usage)
    1. [Authentication](#authentication)
    2. [Upload File](#upload-file)
    3. [Upload Large File](#upload-large-file)
@@ -45,6 +46,22 @@ and should be considered stable.
 
 `go get github.com/benbusby/b2`
 
+## Setup
+
+To use this library with B2, create an account on backblaze.com, create 
+a new bucket (or use an existing one) and follow the following steps to 
+create an Application Key:
+
+1. Select `Account > Application Keys > Add New Application Key`
+2. Name the key and select which bucket the key should have access to
+3. Save the `keyID` and `applicationKey` values
+
+### Local Storage Only
+
+If you just want to use the library functions to write files to your machine
+for testing, you can skip creating a Backblaze account and just use one of
+the "dummy" authentication methods outlined below in [Authentication](#authentication).
+
 ## Usage
 
 ### Authentication
@@ -76,12 +93,21 @@ Most B2 functions have a receiver type of `Auth` and will use the
 
 ___
 
-#### Function
+#### Functions
 
 ```go
 func AuthorizeAccount(
 	b2BucketKeyId string,
 	b2BucketKey string,
+) (Auth, error)
+
+func AuthorizeDummyAccount(
+	path string,
+) (Auth, error)
+
+func AuthorizeLimitedDummyAccount(
+	path string,
+	storageLimit int,
 ) (Auth, error)
 ```
 
@@ -90,13 +116,16 @@ ___
 #### Example
 
 ```go
+# Authenticate with B2
 b2, err := b2.AuthorizeAccount(
 	os.Getenv("B2_BUCKET_KEY_ID"),
 	os.Getenv("B2_BUCKET_KEY"))
 
-if err != nil {
-	panic(err)
-}
+# Create dummy authentication
+b2, err := b2.AuthorizeDummyAccount("/tmp")
+
+# Create dummy authentication w/ 1GB storage limit
+b2, err := b2.AuthorizeLimitedDummyAccount("local-bucket", 1024*1024*1024)
 ```
 
 ### Upload File
