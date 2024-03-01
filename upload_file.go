@@ -196,7 +196,8 @@ func uploadLocalFile(
 
 	return File{
 		FileID:        filename,
-		ContentLength: len(contents),
+		BucketID:      filename,
 		FileName:      filename,
+		ContentLength: len(contents),
 	}, nil
 }

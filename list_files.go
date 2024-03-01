@@ -146,6 +146,7 @@ func listLocalFiles(path string) (FileList, error) {
 		fileList = append(fileList, FileListItem{
 			FileName:      name,
 			FileID:        name,
+			BucketID:      name,
 			ContentLength: int(stat.Size()),
 		})
 	}

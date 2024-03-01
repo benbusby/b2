@@ -400,6 +400,7 @@ func finishLargeLocalFile(id string, path string) (LargeFile, error) {
 	return LargeFile{
 		FileID:        id,
 		FileName:      id,
+		BucketID:      id,
 		ContentLength: int(stat.Size()),
 	}, nil
 }
