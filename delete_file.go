@@ -15,9 +15,9 @@ const APIDeleteFile = "b2_delete_file_version"
 
 // DeleteFile removes a file from B2 using the file's ID and name. Both fields
 // are required, and are provided when a file finishes uploading.
-func (b2Auth Auth) DeleteFile(b2ID string, name string) bool {
-	if b2Auth.Dummy {
-		return deleteLocalFile(b2ID, b2Auth.LocalPath)
+func (b2Service Service) DeleteFile(b2ID string, name string) bool {
+	if b2Service.Dummy {
+		return deleteLocalFile(b2ID, b2Service.LocalPath)
 	}
 
 	reqBody := bytes.NewBuffer([]byte(fmt.Sprintf(`{
@@ -26,8 +26,8 @@ func (b2Auth Auth) DeleteFile(b2ID string, name string) bool {
 	}`, b2ID, name)))
 
 	reqURL := fmt.Sprintf(
-		"%s/%s/%s",
-		b2Auth.APIURL, utils.APIPrefix, APIDeleteFile)
+		"%s/%s/%s/%s",
+		b2Service.APIURL, utils.APIPrefix, b2Service.APIVersion, APIDeleteFile)
 
 	req, err := http.NewRequest("POST", reqURL, reqBody)
 	if err != nil {
@@ -36,7 +36,7 @@ func (b2Auth Auth) DeleteFile(b2ID string, name string) bool {
 	}
 
 	req.Header = http.Header{
-		"Authorization": {b2Auth.AuthorizationToken},
+		"Authorization": {b2Service.AuthorizationToken},
 	}
 
 	res, err := utils.Client.Do(req)

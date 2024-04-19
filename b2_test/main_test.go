@@ -11,8 +11,10 @@ import (
 	"testing"
 )
 
-var account Auth
-var dummyAccount Auth
+var accountV2 Service
+var accountV3 Service
+var dummyAccount Service
+var logPadding = "          "
 
 const localUploadsPath = "./test"
 const testString = "lorem ipsum"
@@ -30,7 +32,7 @@ func TestMain(m *testing.M) {
 		log.Fatal("--- missing B2_TEST_BUCKET_ID")
 	}
 
-	account = authorizeAccount()
+	accountV2, accountV3 = authorizeAccount()
 	dummyAccount, err = AuthorizeDummyAccount(localUploadsPath)
 	if err != nil {
 		log.Fatalf("Failed to setup dummy account")
@@ -45,18 +47,25 @@ func TestMain(m *testing.M) {
 
 // authorizeAccount sets up authorization with B2, which is a prerequisite for
 // testing B2 functionality.
-func authorizeAccount() Auth {
+func authorizeAccount() (Service, Service) {
 	bucketKeyID := os.Getenv("B2_TEST_KEY_ID")
 	bucketKey := os.Getenv("B2_TEST_KEY")
 
-	b2Account, err := AuthorizeAccount(bucketKeyID, bucketKey)
-	if err != nil {
-		log.Fatal("Unable to authorize B2 account")
-	} else if reflect.ValueOf(b2Account).IsZero() {
-		log.Fatal("Empty authorization response from B2")
+	test := func(service Service, err error) {
+		if err != nil {
+			log.Fatal("Unable to authorize B2 account")
+		} else if reflect.ValueOf(service).IsZero() {
+			log.Fatal("Empty authorization response from B2")
+		}
 	}
 
-	return b2Account
+	b2AccountV3, _, err := AuthorizeAccount(bucketKeyID, bucketKey)
+	test(b2AccountV3, err)
+
+	b2AccountV2, _, err := AuthorizeAccountV2(bucketKeyID, bucketKey)
+	test(b2AccountV2, err)
+
+	return b2AccountV2, b2AccountV3
 }
 
 // cleanup removes all files from the B2 test bucket
@@ -64,14 +73,14 @@ func cleanup() {
 	log.SetOutput(os.Stderr)
 
 	bucketID := os.Getenv("B2_TEST_BUCKET_ID")
-	files, err := account.ListAllFiles(bucketID)
+	files, err := accountV3.ListAllFiles(bucketID)
 	if err != nil {
 		log.Fatal("Unable to clean up testing files")
 	}
 
 	removed := 0
 	for _, file := range files.Files {
-		if !account.DeleteFile(file.FileID, file.FileName) {
+		if !accountV3.DeleteFile(file.FileID, file.FileName) {
 			log.Printf("Failed to delete file %s (%s)\n",
 				file.FileName,
 				file.FileID)
@@ -124,7 +133,7 @@ func TestLimitedDummyAccount(t *testing.T) {
 }
 
 func uploadTestFile(filename string) File {
-	info, _ := account.GetUploadURL(os.Getenv("B2_TEST_BUCKET_ID"))
+	info, _ := accountV3.GetUploadURL(os.Getenv("B2_TEST_BUCKET_ID"))
 	data := []byte(testString)
 	checksum := fmt.Sprintf("%x", sha1.Sum(data))
 	file, _ := UploadFile(info, filename, checksum, data)

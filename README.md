@@ -99,16 +99,21 @@ ___
 func AuthorizeAccount(
 	b2BucketKeyId string,
 	b2BucketKey string,
-) (Auth, error)
+) (Service, AuthV2, error)
+
+func AuthorizeAccountV2(
+    b2BucketKeyId string,
+    b2BucketKey string,
+) (Service, AuthV3, error)
 
 func AuthorizeDummyAccount(
 	path string,
-) (Auth, error)
+) (Service, error)
 
 func AuthorizeLimitedDummyAccount(
 	path string,
 	storageLimit int,
-) (Auth, error)
+) (Service, error)
 ```
 
 ___
@@ -148,7 +153,7 @@ ___
 
 Get upload URL:
 ```go
-func (b2Auth Auth) GetUploadURL() (FileInfo, error)
+func (b2Service Service) GetUploadURL() (FileInfo, error)
 ```
 
 Upload file:
@@ -211,12 +216,12 @@ ___
 
 Start large file:
 ```go
-func (b2Auth Auth) StartLargeFile(filename string) (StartFile, error)
+func (b2Service Service) StartLargeFile(filename string) (StartFile, error)
 ```
 
 Get upload part URL:
 ```go
-func (b2Auth Auth) GetUploadPartURL(b2File StartFile) (FilePartInfo, error)
+func (b2Service Service) GetUploadPartURL(b2File StartFile) (FilePartInfo, error)
 ```
 
 Upload file part:
@@ -230,7 +235,7 @@ func (b2PartInfo FilePartInfo) UploadFilePart(
 
 Finish large file:
 ```go
-func (b2Auth Auth) FinishLargeFile(
+func (b2Service Service) FinishLargeFile(
 	fileID string,
 	checksums []string,
 ) (LargeFile, error)
@@ -238,7 +243,7 @@ func (b2Auth Auth) FinishLargeFile(
 
 Cancel large file:
 ```go
-func (b2Auth Auth) CancelLargeFile(fileID string) (bool, error)
+func (b2Service Service) CancelLargeFile(fileID string) (bool, error)
 ```
 
 ___
@@ -295,7 +300,7 @@ ___
 
 Multi-part download:
 ```go
-func (b2Auth Auth) PartialDownloadById(
+func (b2Service Service) PartialDownloadById(
 	id string,
 	begin int,
 	end int,
@@ -305,7 +310,7 @@ func (b2Auth Auth) PartialDownloadById(
 Full download:
 
 ```go
-func (b2Auth Auth) DownloadById(id string) ([]byte, error)
+func (b2Service Service) DownloadById(id string) ([]byte, error)
 ```
 
 ___
@@ -359,7 +364,7 @@ ___
 #### Function
 
 ```go
-func (b2Auth Auth) DeleteFile(b2ID string, name string) bool
+func (b2Service Service) DeleteFile(b2ID string, name string) bool
 ```
 ___
 
@@ -389,11 +394,11 @@ ___
 #### Functions
 
 ```go
-func (b2Auth Auth) ListAllFiles(bucketID string) (FileList, error)
+func (b2Service Service) ListAllFiles(bucketID string) (FileList, error)
 
-func (b2Auth Auth) ListNFiles(bucketID string, count int) (FileList, error)
+func (b2Service Service) ListNFiles(bucketID string, count int) (FileList, error)
 
-func (b2Auth Auth) ListFiles(
+func (b2Service Service) ListFiles(
 	bucketID string,
 	count int,
 	startName string,

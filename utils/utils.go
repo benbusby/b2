@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const APIPrefix string = "b2api/v2"
+const APIPrefix string = "b2api"
 
 var Client = &http.Client{Timeout: 10 * time.Second}
 var B2Error = errors.New("b2 client error")

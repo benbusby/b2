@@ -87,11 +87,11 @@ type LargeFile struct {
 
 // StartLargeFile begins the process for uploading a multi-chunk file to B2.
 // The filename provided cannot change once the large file upload has begun.
-func (b2Auth Auth) StartLargeFile(
+func (b2Service Service) StartLargeFile(
 	filename string,
 	bucketID string,
 ) (StartFile, error) {
-	if b2Auth.Dummy {
+	if b2Service.Dummy {
 		return StartFile{FileID: filename, FileName: filename}, nil
 	}
 
@@ -101,8 +101,8 @@ func (b2Auth Auth) StartLargeFile(
 		"contentType": "b2/x-auto"
 	}`, bucketID, filename)))
 	reqURL := fmt.Sprintf(
-		"%s/%s/%s",
-		b2Auth.APIURL, utils.APIPrefix, APIStartLargeFile)
+		"%s/%s/%s/%s",
+		b2Service.APIURL, utils.APIPrefix, b2Service.APIVersion, APIStartLargeFile)
 
 	req, err := http.NewRequest("POST", reqURL, reqBody)
 	if err != nil {
@@ -112,7 +112,7 @@ func (b2Auth Auth) StartLargeFile(
 
 	req.Header = http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {b2Auth.AuthorizationToken},
+		"Authorization": {b2Service.AuthorizationToken},
 	}
 
 	res, err := utils.Client.Do(req)
@@ -139,21 +139,21 @@ func (b2Auth Auth) StartLargeFile(
 // GetUploadPartURL generates a URL and token for uploading individual chunks
 // of a file to B2. It requires a StartFile struct returned by StartLargeFile,
 // which contains the unique file ID for this new file.
-func (b2Auth Auth) GetUploadPartURL(
+func (b2Service Service) GetUploadPartURL(
 	b2File StartFile,
 ) (FilePartInfo, error) {
-	if b2Auth.Dummy {
+	if b2Service.Dummy {
 		return FilePartInfo{
 			FileID:         b2File.FileID,
-			UploadURL:      b2Auth.LocalPath,
+			UploadURL:      b2Service.LocalPath,
 			Dummy:          true,
-			StorageMaximum: b2Auth.StorageMaximum,
+			StorageMaximum: b2Service.StorageMaximum,
 		}, nil
 	}
 
 	reqURL := fmt.Sprintf(
-		"%s/%s/%s",
-		b2Auth.APIURL, utils.APIPrefix, APIGetUploadPartURL)
+		"%s/%s/%s/%s",
+		b2Service.APIURL, utils.APIPrefix, b2Service.APIVersion, APIGetUploadPartURL)
 
 	req, err := http.NewRequest("GET", reqURL, nil)
 
@@ -168,7 +168,7 @@ func (b2Auth Auth) GetUploadPartURL(
 
 	req.Header = http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {b2Auth.AuthorizationToken},
+		"Authorization": {b2Service.AuthorizationToken},
 	}
 
 	res, err := utils.Client.Do(req)
@@ -241,9 +241,9 @@ func UploadFilePart(
 // partial file from the B2 bucket. Returns true if the file was successfully
 // deleted, otherwise false.
 // Requires the fileID returned from StartLargeFile.
-func (b2Auth Auth) CancelLargeFile(fileID string) (bool, error) {
-	if b2Auth.Dummy {
-		return cancelLocalLargeFile(fileID, b2Auth.LocalPath)
+func (b2Service Service) CancelLargeFile(fileID string) (bool, error) {
+	if b2Service.Dummy {
+		return cancelLocalLargeFile(fileID, b2Service.LocalPath)
 	}
 
 	reqBody := bytes.NewBuffer([]byte(fmt.Sprintf(`{
@@ -251,8 +251,8 @@ func (b2Auth Auth) CancelLargeFile(fileID string) (bool, error) {
 	}`, fileID)))
 
 	reqURL := fmt.Sprintf(
-		"%s/%s/%s",
-		b2Auth.APIURL, utils.APIPrefix, APICancelLargeFile)
+		"%s/%s/%s/%s",
+		b2Service.APIURL, utils.APIPrefix, b2Service.APIVersion, APICancelLargeFile)
 
 	req, err := http.NewRequest("POST", reqURL, reqBody)
 	if err != nil {
@@ -261,7 +261,7 @@ func (b2Auth Auth) CancelLargeFile(fileID string) (bool, error) {
 	}
 
 	req.Header = http.Header{
-		"Authorization": {b2Auth.AuthorizationToken},
+		"Authorization": {b2Service.AuthorizationToken},
 	}
 
 	res, err := utils.Client.Do(req)
@@ -283,12 +283,12 @@ func (b2Auth Auth) CancelLargeFile(fileID string) (bool, error) {
 // calling StartLargeFile should be used here, and all checksums from
 // UploadFilePart should be passed a string-ified array.
 // For example: "['checksum1', 'checksum2']"
-func (b2Auth Auth) FinishLargeFile(
+func (b2Service Service) FinishLargeFile(
 	fileID string,
 	checksums []string,
 ) (LargeFile, error) {
-	if b2Auth.Dummy {
-		return finishLargeLocalFile(fileID, b2Auth.LocalPath)
+	if b2Service.Dummy {
+		return finishLargeLocalFile(fileID, b2Service.LocalPath)
 	}
 
 	checksumsString := "[\"" + strings.Join(checksums, "\",\"") + "\"]"
@@ -299,8 +299,8 @@ func (b2Auth Auth) FinishLargeFile(
 	}`, fileID, checksumsString)))
 
 	reqURL := fmt.Sprintf(
-		"%s/%s/%s",
-		b2Auth.APIURL, utils.APIPrefix, APIFinishLargeFile)
+		"%s/%s/%s/%s",
+		b2Service.APIURL, utils.APIPrefix, b2Service.APIVersion, APIFinishLargeFile)
 
 	req, err := http.NewRequest("POST", reqURL, reqBody)
 	if err != nil {
@@ -310,7 +310,7 @@ func (b2Auth Auth) FinishLargeFile(
 
 	req.Header = http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {b2Auth.AuthorizationToken},
+		"Authorization": {b2Service.AuthorizationToken},
 	}
 
 	res, err := utils.Client.Do(req)

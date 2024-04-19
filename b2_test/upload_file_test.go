@@ -13,31 +13,44 @@ import (
 
 func TestGetUploadURL(t *testing.T) {
 	bucketID := os.Getenv("B2_TEST_BUCKET_ID")
-	info, err := account.GetUploadURL(bucketID)
 
-	if err != nil {
-		t.Fatal("Failed to get upload url from B2")
-	} else if reflect.ValueOf(info).IsZero() {
-		t.Fatal("Empty response from B2")
+	test := func(service Service) {
+		fmt.Printf("%s-- version %s\n", logPadding, service.APIVersion)
+		info, err := service.GetUploadURL(bucketID)
+
+		if err != nil {
+			t.Fatal("Failed to get upload url from B2")
+		} else if reflect.ValueOf(info).IsZero() {
+			t.Fatal("Empty response from B2")
+		}
 	}
+
+	test(accountV2)
+	test(accountV3)
 }
 
 func TestUploadFile(t *testing.T) {
-	info, _ := account.GetUploadURL(os.Getenv("B2_TEST_BUCKET_ID"))
-
 	data := make([]byte, 10)
 	_, _ = rand.Read(data)
 
 	checksum := fmt.Sprintf("%x", sha1.Sum(data))
 	filename := "file.txt"
 
-	file, err := UploadFile(info, filename, checksum, data)
+	test := func(service Service) {
+		fmt.Printf("%s-- version %s\n", logPadding, service.APIVersion)
+		info, _ := service.GetUploadURL(os.Getenv("B2_TEST_BUCKET_ID"))
 
-	if err != nil {
-		t.Fatal("Failed to upload file to B2")
-	} else if reflect.ValueOf(file).IsZero() {
-		t.Fatal("Empty response from B2")
+		file, err := UploadFile(info, filename, checksum, data)
+
+		if err != nil {
+			t.Fatal("Failed to upload file to B2")
+		} else if reflect.ValueOf(file).IsZero() {
+			t.Fatal("Empty response from B2")
+		}
 	}
+
+	test(accountV2)
+	test(accountV3)
 }
 
 func TestUploadLocalFile(t *testing.T) {

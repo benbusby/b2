@@ -55,33 +55,33 @@ type FileList struct {
 // the bucket. If more than 100 files exist, the FileList struct will contain
 // NextFileName and NextFileID fields that can be used with ListFiles to fetch
 // the remainder.
-func (b2Auth Auth) ListAllFiles(bucketID string) (FileList, error) {
-	return b2Auth.ListFiles(bucketID, 100, "", "")
+func (b2Service Service) ListAllFiles(bucketID string) (FileList, error) {
+	return b2Service.ListFiles(bucketID, 100, "", "")
 }
 
 // ListNFiles is similar to ListAllFiles, but allows explicitly stating how many
 // files you want returned in the response.
-func (b2Auth Auth) ListNFiles(bucketID string, count int) (FileList, error) {
-	return b2Auth.ListFiles(bucketID, count, "", "")
+func (b2Service Service) ListNFiles(bucketID string, count int) (FileList, error) {
+	return b2Service.ListFiles(bucketID, count, "", "")
 }
 
 // ListFiles lists all files in the specified bucket up to a maximum of `count`,
 // starting with `startName` and, optionally, `startID`. If count is set to an
 // invalid or negative value, the default number of files returned is 100. If
 // startName or startID are not set, the bucket will list all files
-func (b2Auth Auth) ListFiles(
+func (b2Service Service) ListFiles(
 	bucketID string,
 	count int,
 	startName string,
 	startID string,
 ) (FileList, error) {
-	if b2Auth.Dummy {
-		return listLocalFiles(b2Auth.LocalPath)
+	if b2Service.Dummy {
+		return listLocalFiles(b2Service.LocalPath)
 	}
 
 	reqURL := fmt.Sprintf(
-		"%s/%s/%s",
-		b2Auth.APIURL, utils.APIPrefix, APIListFileVersions)
+		"%s/%s/%s/%s",
+		b2Service.APIURL, utils.APIPrefix, b2Service.APIVersion, APIListFileVersions)
 
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
@@ -102,7 +102,7 @@ func (b2Auth Auth) ListFiles(
 
 	req.URL.RawQuery = q.Encode()
 	req.Header = http.Header{
-		"Authorization": {b2Auth.AuthorizationToken},
+		"Authorization": {b2Service.AuthorizationToken},
 	}
 
 	res, err := utils.Client.Do(req)

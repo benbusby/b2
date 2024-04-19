@@ -13,8 +13,9 @@ import (
 
 const chunkSize = 5242880
 const largeUploadSize = chunkSize + 15
+const maxAttempts = 3
 
-func uploadLargeFile(auth Auth) (LargeFile, error) {
+func uploadLargeFile(service Service) (LargeFile, error) {
 	bucketID := os.Getenv("B2_TEST_BUCKET_ID")
 	data := make([]byte, largeUploadSize)
 	_, _ = rand.Read(data)
@@ -22,7 +23,7 @@ func uploadLargeFile(auth Auth) (LargeFile, error) {
 	var checksums []string
 	filename := "large-file.txt"
 
-	startFile, err := auth.StartLargeFile(filename, bucketID)
+	startFile, err := service.StartLargeFile(filename, bucketID)
 	if err != nil {
 		log.Printf("Failed to start large file: %v", err)
 	}
@@ -42,48 +43,81 @@ func uploadLargeFile(auth Auth) (LargeFile, error) {
 		checksum := fmt.Sprintf("%x", sha1.Sum(contents))
 		checksums = append(checksums, checksum)
 
-		partInfo, err := auth.GetUploadPartURL(startFile)
-		if err != nil {
-			log.Print("Failed to get upload part url")
+		uploadChunk := func(attempt int) (bool, error) {
+			if attempt > 0 {
+				log.Printf("Attempt #%d", attempt+1)
+			}
+
+			partInfo, err := service.GetUploadPartURL(startFile)
+			if err != nil {
+				return false, err
+			}
+
+			err = UploadFilePart(partInfo, chunk, checksum, contents)
+			if err != nil {
+				return attempt < maxAttempts, err
+			}
+
+			return false, nil
 		}
 
-		err = UploadFilePart(partInfo, chunk, checksum, contents)
-		if err != nil {
-			log.Print("Failed to upload file chunk")
+		var retry bool
+		var uploadErr error
+		attempt := 0
+		for attempt < maxAttempts {
+			retry, uploadErr = uploadChunk(attempt)
+			if retry {
+				attempt += 1
+			} else if !retry || uploadErr == nil {
+				break
+			}
 		}
 
 		chunk += 1
 		start += chunkSize
 	}
 
-	return auth.FinishLargeFile(startFile.FileID, checksums)
+	return service.FinishLargeFile(startFile.FileID, checksums)
 }
 
 func TestUploadLargeFile(t *testing.T) {
-	largeFile, err := uploadLargeFile(account)
-	if err != nil {
-		t.Fatal("Failed to finish large file")
-	} else if reflect.ValueOf(largeFile).IsZero() {
-		t.Fatal("Empty large file response from B2")
-	} else if largeFile.ContentLength != largeUploadSize {
-		t.Fatalf("Content length does not match full upload size: "+
-			"expected=%d, actual=%d", largeUploadSize, largeFile.ContentLength)
+	test := func(service Service) {
+		fmt.Printf("%s-- version %s\n", logPadding, service.APIVersion)
+		largeFile, err := uploadLargeFile(service)
+
+		if err != nil {
+			t.Fatal("Failed to finish large file")
+		} else if reflect.ValueOf(largeFile).IsZero() {
+			t.Fatal("Empty large file response from B2")
+		} else if largeFile.ContentLength != largeUploadSize {
+			t.Fatalf("Content length does not match full upload size: "+
+				"expected=%d, actual=%d", largeUploadSize, largeFile.ContentLength)
+		}
 	}
+
+	test(accountV2)
+	test(accountV3)
 }
 
 func TestCancelLargeFile(t *testing.T) {
-	bucketID := os.Getenv("B2_TEST_BUCKET_ID")
-	filename := "cancel-large-file.txt"
+	test := func(service Service) {
+		fmt.Printf("%s-- version %s\n", logPadding, service.APIVersion)
+		bucketID := os.Getenv("B2_TEST_BUCKET_ID")
+		filename := "cancel-large-file.txt"
 
-	startFile, err := account.StartLargeFile(filename, bucketID)
-	if err != nil {
-		t.Fatalf("Failed to start large file: %v", err)
+		startFile, err := service.StartLargeFile(filename, bucketID)
+		if err != nil {
+			t.Fatalf("Failed to start large file: %v", err)
+		}
+
+		canceled, err := service.CancelLargeFile(startFile.FileID)
+		if err != nil || !canceled {
+			t.Fatal("Failed to cancel large file")
+		}
 	}
 
-	canceled, err := account.CancelLargeFile(startFile.FileID)
-	if err != nil || !canceled {
-		t.Fatal("Failed to cancel large file")
-	}
+	test(accountV2)
+	test(accountV3)
 }
 
 func TestUploadLocalLargeFile(t *testing.T) {

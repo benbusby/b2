@@ -55,18 +55,18 @@ type FileInfo struct {
 // GetUploadURL returns a FileInfo struct containing the URL to use
 // for uploading a file, the ID of the bucket the file will be put
 // in, and a token for authenticating the upload request.
-func (b2Auth Auth) GetUploadURL(bucketID string) (FileInfo, error) {
-	if b2Auth.Dummy {
+func (b2Service Service) GetUploadURL(bucketID string) (FileInfo, error) {
+	if b2Service.Dummy {
 		return FileInfo{
-			UploadURL:      b2Auth.LocalPath,
-			StorageMaximum: b2Auth.StorageMaximum,
+			UploadURL:      b2Service.LocalPath,
+			StorageMaximum: b2Service.StorageMaximum,
 			Dummy:          true,
 		}, nil
 	}
 
 	reqURL := fmt.Sprintf(
-		"%s/%s/%s",
-		b2Auth.APIURL, utils.APIPrefix, APIGetUploadURL)
+		"%s/%s/%s/%s",
+		b2Service.APIURL, utils.APIPrefix, b2Service.APIVersion, APIGetUploadURL)
 
 	req, err := http.NewRequest("GET", reqURL, nil)
 
@@ -81,7 +81,7 @@ func (b2Auth Auth) GetUploadURL(bucketID string) (FileInfo, error) {
 
 	req.Header = http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {b2Auth.AuthorizationToken},
+		"Authorization": {b2Service.AuthorizationToken},
 	}
 
 	res, err := utils.Client.Do(req)

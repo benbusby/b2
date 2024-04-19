@@ -10,19 +10,25 @@ import (
 )
 
 func TestDeleteFile(t *testing.T) {
-	info, _ := account.GetUploadURL(os.Getenv("B2_TEST_BUCKET_ID"))
+	test := func(service Service) {
+		fmt.Printf("%s-- version %s\n", logPadding, service.APIVersion)
+		info, _ := service.GetUploadURL(os.Getenv("B2_TEST_BUCKET_ID"))
 
-	data := make([]byte, 10)
-	_, _ = rand.Read(data)
+		data := make([]byte, 10)
+		_, _ = rand.Read(data)
 
-	checksum := fmt.Sprintf("%x", sha1.Sum(data))
-	filename := "delete-this.txt"
+		checksum := fmt.Sprintf("%x", sha1.Sum(data))
+		filename := "delete-this.txt"
 
-	file, _ := UploadFile(info, filename, checksum, data)
+		file, _ := UploadFile(info, filename, checksum, data)
 
-	if !account.DeleteFile(file.FileID, file.FileName) {
-		t.Fatal("Failed to delete file from B2")
+		if !service.DeleteFile(file.FileID, file.FileName) {
+			t.Fatal("Failed to delete file from B2")
+		}
 	}
+
+	test(accountV2)
+	test(accountV3)
 }
 
 func TestDeleteLocalFile(t *testing.T) {

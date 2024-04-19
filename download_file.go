@@ -15,10 +15,10 @@ const APIDownloadById string = "b2_download_file_by_id"
 
 // setupDownload creates an http.Request with the URL for downloading a file,
 // as well as the file ID included in the query.
-func setupDownload(apiURL string, fileID string) (*http.Request, error) {
+func setupDownload(apiURL, apiVersion, fileID string) (*http.Request, error) {
 	reqURL := fmt.Sprintf(
-		"%s/%s/%s",
-		apiURL, utils.APIPrefix, APIDownloadById)
+		"%s/%s/%s/%s",
+		apiURL, utils.APIPrefix, apiVersion, APIDownloadById)
 
 	req, err := http.NewRequest("GET", reqURL, nil)
 
@@ -65,20 +65,20 @@ func download(req *http.Request) ([]byte, error) {
 // PartialDownloadById downloads a file from B2 with a specified begin and end
 // byte. For example, setting begin to 0 and end to 99 will download only the
 // first 99 bytes of the file.
-func (b2Auth Auth) PartialDownloadById(
+func (b2Service Service) PartialDownloadById(
 	id string,
 	begin int,
 	end int,
 ) ([]byte, error) {
-	if b2Auth.Dummy {
+	if b2Service.Dummy {
 		return partiallyDownloadLocalFile(
 			id,
-			b2Auth.LocalPath,
+			b2Service.LocalPath,
 			begin,
 			end)
 	}
 
-	req, err := setupDownload(b2Auth.APIURL, id)
+	req, err := setupDownload(b2Service.APIURL, b2Service.APIVersion, id)
 	if err != nil {
 		log.Fatalf("B2Error setting up download: %v", err)
 		return nil, err
@@ -87,7 +87,7 @@ func (b2Auth Auth) PartialDownloadById(
 	byteRange := fmt.Sprintf("bytes=%d-%d", begin, end)
 
 	req.Header = http.Header{
-		"Authorization": {b2Auth.AuthorizationToken},
+		"Authorization": {b2Service.AuthorizationToken},
 		"Range":         {byteRange},
 	}
 
@@ -95,19 +95,19 @@ func (b2Auth Auth) PartialDownloadById(
 }
 
 // DownloadById downloads an entire file (regardless of size) from B2.
-func (b2Auth Auth) DownloadById(id string) ([]byte, error) {
-	if b2Auth.Dummy {
-		return downloadLocalFile(id, b2Auth.LocalPath)
+func (b2Service Service) DownloadById(id string) ([]byte, error) {
+	if b2Service.Dummy {
+		return downloadLocalFile(id, b2Service.LocalPath)
 	}
 
-	req, err := setupDownload(b2Auth.APIURL, id)
+	req, err := setupDownload(b2Service.APIURL, b2Service.APIVersion, id)
 	if err != nil {
 		log.Fatalf("B2Error setting up download: %v", err)
 		return nil, err
 	}
 
 	req.Header = http.Header{
-		"Authorization": {b2Auth.AuthorizationToken},
+		"Authorization": {b2Service.AuthorizationToken},
 	}
 
 	return download(req)
