@@ -25,9 +25,8 @@ func (b2Service Service) DeleteFile(b2ID string, name string) bool {
 		"fileName": "%s"
 	}`, b2ID, name)))
 
-	reqURL := fmt.Sprintf(
-		"%s/%s/%s/%s",
-		b2Service.APIURL, utils.APIPrefix, b2Service.APIVersion, APIDeleteFile)
+	reqURL := utils.FormatB2URL(
+		b2Service.APIURL, b2Service.APIVersion, APIDeleteFile)
 
 	req, err := http.NewRequest("POST", reqURL, reqBody)
 	if err != nil {

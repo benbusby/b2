@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -26,4 +27,10 @@ func CheckDirSize(path string) (int64, error) {
 		return err
 	})
 	return size, err
+}
+
+func FormatB2URL(apiURL, apiVersion, endpoint string) string {
+	return fmt.Sprintf(
+		"%s/%s/%s/%s",
+		apiURL, APIPrefix, apiVersion, endpoint)
 }

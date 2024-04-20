@@ -64,9 +64,8 @@ func (b2Service Service) GetUploadURL(bucketID string) (FileInfo, error) {
 		}, nil
 	}
 
-	reqURL := fmt.Sprintf(
-		"%s/%s/%s/%s",
-		b2Service.APIURL, utils.APIPrefix, b2Service.APIVersion, APIGetUploadURL)
+	reqURL := utils.FormatB2URL(
+		b2Service.APIURL, b2Service.APIVersion, APIGetUploadURL)
 
 	req, err := http.NewRequest("GET", reqURL, nil)
 

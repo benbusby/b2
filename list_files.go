@@ -79,9 +79,8 @@ func (b2Service Service) ListFiles(
 		return listLocalFiles(b2Service.LocalPath)
 	}
 
-	reqURL := fmt.Sprintf(
-		"%s/%s/%s/%s",
-		b2Service.APIURL, utils.APIPrefix, b2Service.APIVersion, APIListFileVersions)
+	reqURL := utils.FormatB2URL(
+		b2Service.APIURL, b2Service.APIVersion, APIListFileVersions)
 
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {

@@ -16,9 +16,8 @@ const APIDownloadById string = "b2_download_file_by_id"
 // setupDownload creates an http.Request with the URL for downloading a file,
 // as well as the file ID included in the query.
 func setupDownload(apiURL, apiVersion, fileID string) (*http.Request, error) {
-	reqURL := fmt.Sprintf(
-		"%s/%s/%s/%s",
-		apiURL, utils.APIPrefix, apiVersion, APIDownloadById)
+	reqURL := utils.FormatB2URL(
+		apiURL, apiVersion, APIDownloadById)
 
 	req, err := http.NewRequest("GET", reqURL, nil)
 

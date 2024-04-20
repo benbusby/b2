@@ -100,9 +100,8 @@ func (b2Service Service) StartLargeFile(
 		"fileName": "%s",
 		"contentType": "b2/x-auto"
 	}`, bucketID, filename)))
-	reqURL := fmt.Sprintf(
-		"%s/%s/%s/%s",
-		b2Service.APIURL, utils.APIPrefix, b2Service.APIVersion, APIStartLargeFile)
+	reqURL := utils.FormatB2URL(
+		b2Service.APIURL, b2Service.APIVersion, APIStartLargeFile)
 
 	req, err := http.NewRequest("POST", reqURL, reqBody)
 	if err != nil {
@@ -139,26 +138,23 @@ func (b2Service Service) StartLargeFile(
 // GetUploadPartURL generates a URL and token for uploading individual chunks
 // of a file to B2. It requires a StartFile struct returned by StartLargeFile,
 // which contains the unique file ID for this new file.
-func (b2Service Service) GetUploadPartURL(
-	b2File StartFile,
-) (FilePartInfo, error) {
+func (b2Service Service) GetUploadPartURL(fileID string) (FilePartInfo, error) {
 	if b2Service.Dummy {
 		return FilePartInfo{
-			FileID:         b2File.FileID,
+			FileID:         fileID,
 			UploadURL:      b2Service.LocalPath,
 			Dummy:          true,
 			StorageMaximum: b2Service.StorageMaximum,
 		}, nil
 	}
 
-	reqURL := fmt.Sprintf(
-		"%s/%s/%s/%s",
-		b2Service.APIURL, utils.APIPrefix, b2Service.APIVersion, APIGetUploadPartURL)
+	reqURL := utils.FormatB2URL(
+		b2Service.APIURL, b2Service.APIVersion, APIGetUploadPartURL)
 
 	req, err := http.NewRequest("GET", reqURL, nil)
 
 	q := req.URL.Query()
-	q.Add("fileId", b2File.FileID)
+	q.Add("fileId", fileID)
 	req.URL.RawQuery = q.Encode()
 
 	if err != nil {
@@ -250,9 +246,8 @@ func (b2Service Service) CancelLargeFile(fileID string) (bool, error) {
 		"fileId": "%s"
 	}`, fileID)))
 
-	reqURL := fmt.Sprintf(
-		"%s/%s/%s/%s",
-		b2Service.APIURL, utils.APIPrefix, b2Service.APIVersion, APICancelLargeFile)
+	reqURL := utils.FormatB2URL(
+		b2Service.APIURL, b2Service.APIVersion, APICancelLargeFile)
 
 	req, err := http.NewRequest("POST", reqURL, reqBody)
 	if err != nil {
@@ -298,9 +293,8 @@ func (b2Service Service) FinishLargeFile(
 		"partSha1Array": %s
 	}`, fileID, checksumsString)))
 
-	reqURL := fmt.Sprintf(
-		"%s/%s/%s/%s",
-		b2Service.APIURL, utils.APIPrefix, b2Service.APIVersion, APIFinishLargeFile)
+	reqURL := utils.FormatB2URL(
+		b2Service.APIURL, b2Service.APIVersion, APIFinishLargeFile)
 
 	req, err := http.NewRequest("POST", reqURL, reqBody)
 	if err != nil {

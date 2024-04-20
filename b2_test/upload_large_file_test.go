@@ -48,7 +48,7 @@ func uploadLargeFile(service Service) (LargeFile, error) {
 				log.Printf("Attempt #%d", attempt+1)
 			}
 
-			partInfo, err := service.GetUploadPartURL(startFile)
+			partInfo, err := service.GetUploadPartURL(startFile.FileID)
 			if err != nil {
 				return false, err
 			}
