@@ -9,7 +9,7 @@ import (
 func TestDownloadFile(t *testing.T) {
 	file := uploadTestFile("download.txt")
 
-	test := func(service Service) {
+	test := func(service *Service) {
 		fmt.Printf("%s-- version %s\n", logPadding, service.APIVersion)
 		contents, err := service.DownloadById(file.FileID)
 		if err != nil {
@@ -28,7 +28,7 @@ func TestDownloadFile(t *testing.T) {
 func TestPartialDownload(t *testing.T) {
 	file := uploadTestFile("partial-download.txt")
 
-	test := func(service Service) {
+	test := func(service *Service) {
 		fmt.Printf("%s-- version %s\n", logPadding, service.APIVersion)
 		contents, err := service.PartialDownloadById(file.FileID, 0, 4)
 		if err != nil {

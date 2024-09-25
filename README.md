@@ -153,7 +153,7 @@ ___
 
 Get upload URL:
 ```go
-func (b2Service Service) GetUploadURL() (FileInfo, error)
+func (b2Service *Service) GetUploadURL() (FileInfo, error)
 ```
 
 Upload file:
@@ -216,12 +216,12 @@ ___
 
 Start large file:
 ```go
-func (b2Service Service) StartLargeFile(filename string) (StartFile, error)
+func (b2Service *Service) StartLargeFile(filename string) (StartFile, error)
 ```
 
 Get upload part URL:
 ```go
-func (b2Service Service) GetUploadPartURL(b2File StartFile) (FilePartInfo, error)
+func (b2Service *Service) GetUploadPartURL(b2File StartFile) (FilePartInfo, error)
 ```
 
 Upload file part:
@@ -235,7 +235,7 @@ func (b2PartInfo FilePartInfo) UploadFilePart(
 
 Finish large file:
 ```go
-func (b2Service Service) FinishLargeFile(
+func (b2Service *Service) FinishLargeFile(
 	fileID string,
 	checksums []string,
 ) (LargeFile, error)
@@ -243,7 +243,7 @@ func (b2Service Service) FinishLargeFile(
 
 Cancel large file:
 ```go
-func (b2Service Service) CancelLargeFile(fileID string) (bool, error)
+func (b2Service *Service) CancelLargeFile(fileID string) (bool, error)
 ```
 
 ___
@@ -300,7 +300,7 @@ ___
 
 Multi-part download:
 ```go
-func (b2Service Service) PartialDownloadById(
+func (b2Service *Service) PartialDownloadById(
 	id string,
 	begin int,
 	end int,
@@ -310,7 +310,7 @@ func (b2Service Service) PartialDownloadById(
 Full download:
 
 ```go
-func (b2Service Service) DownloadById(id string) ([]byte, error)
+func (b2Service *Service) DownloadById(id string) ([]byte, error)
 ```
 
 ___
@@ -364,7 +364,7 @@ ___
 #### Function
 
 ```go
-func (b2Service Service) DeleteFile(b2ID string, name string) bool
+func (b2Service *Service) DeleteFile(b2ID string, name string) bool
 ```
 ___
 
@@ -394,11 +394,11 @@ ___
 #### Functions
 
 ```go
-func (b2Service Service) ListAllFiles(bucketID string) (FileList, error)
+func (b2Service *Service) ListAllFiles(bucketID string) (FileList, error)
 
-func (b2Service Service) ListNFiles(bucketID string, count int) (FileList, error)
+func (b2Service *Service) ListNFiles(bucketID string, count int) (FileList, error)
 
-func (b2Service Service) ListFiles(
+func (b2Service *Service) ListFiles(
 	bucketID string,
 	count int,
 	startName string,

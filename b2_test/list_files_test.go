@@ -14,7 +14,7 @@ func TestListFiles(t *testing.T) {
 		uploadTestFile(filename)
 	}
 
-	test := func(service Service) {
+	test := func(service *Service) {
 		fmt.Printf("%s-- version %s\n", logPadding, service.APIVersion)
 		fullFileList, err := service.ListAllFiles(bucketID)
 		if err != nil {

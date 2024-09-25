@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/benbusby/b2/utils"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -20,7 +19,7 @@ type File struct {
 	AccountID     string `json:"accountId"`
 	Action        string `json:"action"`
 	BucketID      string `json:"bucketId"`
-	ContentLength int    `json:"contentLength"`
+	ContentLength int64  `json:"contentLength"`
 	ContentMd5    string `json:"contentMd5"`
 	ContentSha1   string `json:"contentSha1"`
 	ContentType   string `json:"contentType"`
@@ -49,13 +48,13 @@ type FileInfo struct {
 	UploadURL          string `json:"uploadUrl"`
 	AuthorizationToken string `json:"authorizationToken"`
 	Dummy              bool
-	StorageMaximum     int
+	StorageMaximum     int64
 }
 
 // GetUploadURL returns a FileInfo struct containing the URL to use
 // for uploading a file, the ID of the bucket the file will be put
 // in, and a token for authenticating the upload request.
-func (b2Service Service) GetUploadURL(bucketID string) (FileInfo, error) {
+func (b2Service *Service) GetUploadURL(bucketID string) (FileInfo, error) {
 	if b2Service.Dummy {
 		return FileInfo{
 			UploadURL:      b2Service.LocalPath,
@@ -74,7 +73,7 @@ func (b2Service Service) GetUploadURL(bucketID string) (FileInfo, error) {
 	req.URL.RawQuery = q.Encode()
 
 	if err != nil {
-		log.Printf("B2Error creating new HTTP request: %v\n", err)
+		b2Service.Logf("B2Error creating new HTTP request: %v\n", err)
 		return FileInfo{}, err
 	}
 
@@ -85,19 +84,18 @@ func (b2Service Service) GetUploadURL(bucketID string) (FileInfo, error) {
 
 	res, err := utils.Client.Do(req)
 	if err != nil {
-		log.Printf("B2Error requesting B2 upload URL: %v\n", err)
+		b2Service.Logf("B2Error requesting B2 upload URL: %v\n", err)
 		return FileInfo{}, err
 	} else if res.StatusCode >= 400 {
-		log.Printf("\n%s %s\n", "GET", reqURL)
+		b2Service.Logf("\n%s %s\n", "GET", reqURL)
 		resp, _ := httputil.DumpResponse(res, true)
-		log.Println(fmt.Sprintf("%s", resp))
-		return FileInfo{}, utils.B2Error
+		return FileInfo{}, utils.NewB2Error(nil, string(resp))
 	}
 
 	var upload FileInfo
 	err = json.NewDecoder(res.Body).Decode(&upload)
 	if err != nil {
-		log.Printf("B2Error decoding B2 upload info: %v", err)
+		b2Service.Logf("B2Error decoding B2 upload info: %v", err)
 		return FileInfo{}, err
 	}
 
@@ -123,7 +121,6 @@ func UploadFile(
 		b2Info.UploadURL,
 		bytes.NewBuffer(contents))
 	if err != nil {
-		log.Printf("B2Error creating upload request: %v\n", err)
 		return File{}, err
 	}
 
@@ -138,19 +135,15 @@ func UploadFile(
 	res, err := utils.Client.Do(req)
 
 	if err != nil {
-		log.Printf("B2Error uploading file chunk to B2: %v\n", err)
 		return File{}, err
 	} else if res.StatusCode >= 400 {
-		log.Printf("\n%s %s\n", "POST", b2Info.UploadURL)
 		resp, _ := httputil.DumpResponse(res, true)
-		log.Println(fmt.Sprintf("%s", resp))
-		return File{}, utils.B2Error
+		return File{}, utils.NewB2Error(nil, string(resp))
 	}
 
 	var b2File File
 	err = json.NewDecoder(res.Body).Decode(&b2File)
 	if err != nil {
-		log.Printf("B2Error decoding B2 file: %v", err)
 		return File{}, err
 	}
 
@@ -197,6 +190,6 @@ func uploadLocalFile(
 		FileID:        filename,
 		BucketID:      filename,
 		FileName:      filename,
-		ContentLength: len(contents),
+		ContentLength: int64(len(contents)),
 	}, nil
 }

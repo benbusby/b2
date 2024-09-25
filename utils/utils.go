@@ -34,3 +34,8 @@ func FormatB2URL(apiURL, apiVersion, endpoint string) string {
 		"%s/%s/%s/%s",
 		apiURL, APIPrefix, apiVersion, endpoint)
 }
+
+func NewB2Error(err error, errMsg string) error {
+	fullMsg := fmt.Sprintf("B2 Error: %v\n%s", err, errMsg)
+	return errors.New(fullMsg)
+}

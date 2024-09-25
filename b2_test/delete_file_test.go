@@ -10,7 +10,7 @@ import (
 )
 
 func TestDeleteFile(t *testing.T) {
-	test := func(service Service) {
+	test := func(service *Service) {
 		fmt.Printf("%s-- version %s\n", logPadding, service.APIVersion)
 		info, _ := service.GetUploadURL(os.Getenv("B2_TEST_BUCKET_ID"))
 
@@ -22,7 +22,8 @@ func TestDeleteFile(t *testing.T) {
 
 		file, _ := UploadFile(info, filename, checksum, data)
 
-		if !service.DeleteFile(file.FileID, file.FileName) {
+		deleted, err := service.DeleteFile(file.FileID, file.FileName)
+		if !deleted || err != nil {
 			t.Fatal("Failed to delete file from B2")
 		}
 	}
@@ -34,7 +35,8 @@ func TestDeleteFile(t *testing.T) {
 func TestDeleteLocalFile(t *testing.T) {
 	file := uploadLocalTestFile("delete-this.txt")
 
-	if !dummyAccount.DeleteFile(file.FileID, file.FileName) {
+	deleted, err := dummyAccount.DeleteFile(file.FileID, file.FileName)
+	if !deleted || err != nil {
 		t.Fatal("Failed to delete local file")
 	}
 }

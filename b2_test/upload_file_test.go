@@ -14,7 +14,7 @@ import (
 func TestGetUploadURL(t *testing.T) {
 	bucketID := os.Getenv("B2_TEST_BUCKET_ID")
 
-	test := func(service Service) {
+	test := func(service *Service) {
 		fmt.Printf("%s-- version %s\n", logPadding, service.APIVersion)
 		info, err := service.GetUploadURL(bucketID)
 
@@ -36,7 +36,7 @@ func TestUploadFile(t *testing.T) {
 	checksum := fmt.Sprintf("%x", sha1.Sum(data))
 	filename := "file.txt"
 
-	test := func(service Service) {
+	test := func(service *Service) {
 		fmt.Printf("%s-- version %s\n", logPadding, service.APIVersion)
 		info, _ := service.GetUploadURL(os.Getenv("B2_TEST_BUCKET_ID"))
 

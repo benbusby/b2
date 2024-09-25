@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/benbusby/b2/utils"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -17,7 +16,7 @@ type FileListItem struct {
 	AccountID     string `json:"accountId"`
 	Action        string `json:"action"`
 	BucketID      string `json:"bucketId"`
-	ContentLength int    `json:"contentLength"`
+	ContentLength int64  `json:"contentLength"`
 	ContentSha1   string `json:"contentSha1"`
 	ContentMd5    string `json:"contentMd5"`
 	ContentType   string `json:"contentType"`
@@ -55,13 +54,13 @@ type FileList struct {
 // the bucket. If more than 100 files exist, the FileList struct will contain
 // NextFileName and NextFileID fields that can be used with ListFiles to fetch
 // the remainder.
-func (b2Service Service) ListAllFiles(bucketID string) (FileList, error) {
+func (b2Service *Service) ListAllFiles(bucketID string) (FileList, error) {
 	return b2Service.ListFiles(bucketID, 100, "", "")
 }
 
 // ListNFiles is similar to ListAllFiles, but allows explicitly stating how many
 // files you want returned in the response.
-func (b2Service Service) ListNFiles(bucketID string, count int) (FileList, error) {
+func (b2Service *Service) ListNFiles(bucketID string, count int) (FileList, error) {
 	return b2Service.ListFiles(bucketID, count, "", "")
 }
 
@@ -69,7 +68,7 @@ func (b2Service Service) ListNFiles(bucketID string, count int) (FileList, error
 // starting with `startName` and, optionally, `startID`. If count is set to an
 // invalid or negative value, the default number of files returned is 100. If
 // startName or startID are not set, the bucket will list all files
-func (b2Service Service) ListFiles(
+func (b2Service *Service) ListFiles(
 	bucketID string,
 	count int,
 	startName string,
@@ -106,18 +105,17 @@ func (b2Service Service) ListFiles(
 
 	res, err := utils.Client.Do(req)
 	if err != nil {
-		log.Printf("B2Error requesting B2 file list: %v\n", err)
+		b2Service.Logf("B2Error requesting B2 file list: %v\n", err)
 		return FileList{}, err
 	} else if res.StatusCode >= 400 {
 		resp, _ := httputil.DumpResponse(res, true)
-		log.Println(fmt.Sprintf("%s", resp))
-		return FileList{}, utils.B2Error
+		return FileList{}, utils.NewB2Error(nil, string(resp))
 	}
 
 	var b2FileList FileList
 	err = json.NewDecoder(res.Body).Decode(&b2FileList)
 	if err != nil {
-		log.Printf("B2Error decoding B2 file list: %v", err)
+		b2Service.Logf("B2Error decoding B2 file list: %v", err)
 		return FileList{}, err
 	}
 
@@ -146,7 +144,7 @@ func listLocalFiles(path string) (FileList, error) {
 			FileName:      name,
 			FileID:        name,
 			BucketID:      name,
-			ContentLength: int(stat.Size()),
+			ContentLength: stat.Size(),
 		})
 	}
 

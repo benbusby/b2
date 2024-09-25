@@ -15,7 +15,7 @@ const chunkSize = 5242880
 const largeUploadSize = chunkSize + 15
 const maxAttempts = 3
 
-func uploadLargeFile(service Service) (LargeFile, error) {
+func uploadLargeFile(service *Service) (LargeFile, error) {
 	bucketID := os.Getenv("B2_TEST_BUCKET_ID")
 	data := make([]byte, largeUploadSize)
 	_, _ = rand.Read(data)
@@ -45,7 +45,7 @@ func uploadLargeFile(service Service) (LargeFile, error) {
 
 		uploadChunk := func(attempt int) (bool, error) {
 			if attempt > 0 {
-				log.Printf("Attempt #%d", attempt+1)
+				service.Logf("Attempt #%d", attempt+1)
 			}
 
 			partInfo, err := service.GetUploadPartURL(startFile.FileID)
@@ -81,7 +81,7 @@ func uploadLargeFile(service Service) (LargeFile, error) {
 }
 
 func TestUploadLargeFile(t *testing.T) {
-	test := func(service Service) {
+	test := func(service *Service) {
 		fmt.Printf("%s-- version %s\n", logPadding, service.APIVersion)
 		largeFile, err := uploadLargeFile(service)
 
@@ -100,7 +100,7 @@ func TestUploadLargeFile(t *testing.T) {
 }
 
 func TestCancelLargeFile(t *testing.T) {
-	test := func(service Service) {
+	test := func(service *Service) {
 		fmt.Printf("%s-- version %s\n", logPadding, service.APIVersion)
 		bucketID := os.Getenv("B2_TEST_BUCKET_ID")
 		filename := "cancel-large-file.txt"

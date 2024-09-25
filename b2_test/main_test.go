@@ -11,9 +11,9 @@ import (
 	"testing"
 )
 
-var accountV2 Service
-var accountV3 Service
-var dummyAccount Service
+var accountV2 *Service
+var accountV3 *Service
+var dummyAccount *Service
 var logPadding = "          "
 
 const localUploadsPath = "./test"
@@ -47,11 +47,11 @@ func TestMain(m *testing.M) {
 
 // authorizeAccount sets up authorization with B2, which is a prerequisite for
 // testing B2 functionality.
-func authorizeAccount() (Service, Service) {
+func authorizeAccount() (*Service, *Service) {
 	bucketKeyID := os.Getenv("B2_TEST_KEY_ID")
 	bucketKey := os.Getenv("B2_TEST_KEY")
 
-	test := func(service Service, err error) {
+	test := func(service *Service, err error) {
 		if err != nil {
 			log.Fatal("Unable to authorize B2 account")
 		} else if reflect.ValueOf(service).IsZero() {
@@ -80,7 +80,8 @@ func cleanup() {
 
 	removed := 0
 	for _, file := range files.Files {
-		if !accountV3.DeleteFile(file.FileID, file.FileName) {
+		deleted, err := accountV3.DeleteFile(file.FileID, file.FileName)
+		if !deleted || err != nil {
 			log.Printf("Failed to delete file %s (%s)\n",
 				file.FileName,
 				file.FileID)
@@ -98,7 +99,8 @@ func cleanup() {
 
 	locallyRemoved := 0
 	for _, file := range localFiles.Files {
-		if !dummyAccount.DeleteFile(file.FileID, file.FileName) {
+		deleted, err := dummyAccount.DeleteFile(file.FileID, file.FileName)
+		if !deleted || err != nil {
 			log.Printf("Failed to delete local test file %s", file.FileName)
 		} else {
 			locallyRemoved += 1

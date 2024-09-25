@@ -22,7 +22,8 @@ type Service struct {
 	APIVersion         string
 	Dummy              bool
 	LocalPath          string
-	StorageMaximum     int
+	StorageMaximum     int64
+	Logging            bool
 }
 
 type AuthV2 struct {
@@ -66,17 +67,16 @@ type AuthV3 struct {
 	AuthorizationToken                string `json:"authorizationToken"`
 }
 
-func AuthorizeAccount(b2BucketKeyId, b2BucketKey string) (Service, AuthV3, error) {
+func AuthorizeAccount(b2BucketKeyId, b2BucketKey string) (*Service, AuthV3, error) {
 	response, err := InitAuthorization(b2BucketKeyId, b2BucketKey, AuthURLV3)
 	if err != nil {
-		return Service{}, AuthV3{}, err
+		return &Service{}, AuthV3{}, err
 	}
 
 	var auth AuthV3
 	err = json.NewDecoder(response).Decode(&auth)
 	if err != nil {
-		log.Printf("B2Error decoding B2 auth: %v", err)
-		return Service{}, AuthV3{}, err
+		return &Service{}, AuthV3{}, err
 	}
 
 	// Trim trailing slash
@@ -85,7 +85,7 @@ func AuthorizeAccount(b2BucketKeyId, b2BucketKey string) (Service, AuthV3, error
 		auth.APIInfo.StorageAPI.APIURL = apiURL[0 : len(apiURL)-2]
 	}
 
-	service := Service{
+	service := &Service{
 		APIURL:             auth.APIInfo.StorageAPI.APIURL,
 		AuthorizationToken: auth.AuthorizationToken,
 		APIVersion:         "v3",
@@ -97,17 +97,16 @@ func AuthorizeAccount(b2BucketKeyId, b2BucketKey string) (Service, AuthV3, error
 	return service, auth, nil
 }
 
-func AuthorizeAccountV2(b2BucketKeyId, b2BucketKey string) (Service, AuthV2, error) {
+func AuthorizeAccountV2(b2BucketKeyId, b2BucketKey string) (*Service, AuthV2, error) {
 	response, err := InitAuthorization(b2BucketKeyId, b2BucketKey, AuthURLV2)
 	if err != nil {
-		return Service{}, AuthV2{}, err
+		return &Service{}, AuthV2{}, err
 	}
 
 	var auth AuthV2
 	err = json.NewDecoder(response).Decode(&auth)
 	if err != nil {
-		log.Printf("B2Error decoding B2 auth: %v", err)
-		return Service{}, AuthV2{}, err
+		return &Service{}, AuthV2{}, err
 	}
 
 	// Trim trailing slash
@@ -115,7 +114,7 @@ func AuthorizeAccountV2(b2BucketKeyId, b2BucketKey string) (Service, AuthV2, err
 		auth.APIURL = auth.APIURL[0 : len(auth.APIURL)-2]
 	}
 
-	service := Service{
+	service := &Service{
 		APIURL:             auth.APIURL,
 		AuthorizationToken: auth.AuthorizationToken,
 		APIVersion:         "v2",
@@ -130,7 +129,6 @@ func AuthorizeAccountV2(b2BucketKeyId, b2BucketKey string) (Service, AuthV2, err
 func InitAuthorization(b2BucketKeyId, b2BucketKey, authURL string) (io.ReadCloser, error) {
 	req, err := http.NewRequest("GET", authURL, nil)
 	if err != nil {
-		log.Printf("B2Error creating new HTTP request: %v", err)
 		return nil, err
 	}
 
@@ -144,12 +142,12 @@ func InitAuthorization(b2BucketKeyId, b2BucketKey, authURL string) (io.ReadClose
 
 	res, err := utils.Client.Do(req)
 	if err != nil {
-		log.Printf("B2Error sending B2 auth request: %v\n", err)
 		return nil, err
 	} else if res.StatusCode >= 400 {
 		log.Printf("%s -- error: %d\n", authURL, res.StatusCode)
 		resp, _ := httputil.DumpResponse(res, true)
 		log.Println(fmt.Sprintf("%s", resp))
+		return res.Body, utils.B2Error
 	}
 
 	return res.Body, nil
@@ -157,16 +155,16 @@ func InitAuthorization(b2BucketKeyId, b2BucketKey, authURL string) (io.ReadClose
 
 // AuthorizeDummyAccount allows using the B2 library as normal, but having
 // all files saved and retrieved from a specific folder on the machine.
-func AuthorizeDummyAccount(path string) (Service, error) {
+func AuthorizeDummyAccount(path string) (*Service, error) {
 	if _, err := os.Stat(path); err != nil {
 		// Attempt to create directory
 		err = os.MkdirAll(path, 0755)
 		if err != nil {
-			return Service{}, err
+			return &Service{}, err
 		}
 	}
 
-	return Service{
+	return &Service{
 		Dummy:     true,
 		LocalPath: path,
 	}, nil
@@ -175,12 +173,24 @@ func AuthorizeDummyAccount(path string) (Service, error) {
 // AuthorizeLimitedDummyAccount functions the same as AuthorizeDummyAccount, but
 // imposes an additional limitation for the total size of the directory specified
 // in the "path" variable.
-func AuthorizeLimitedDummyAccount(path string, storageLimit int) (Service, error) {
+func AuthorizeLimitedDummyAccount(path string, storageLimit int64) (*Service, error) {
 	service, err := AuthorizeDummyAccount(path)
 	if err != nil {
-		return Service{}, err
+		return &Service{}, err
 	}
 
 	service.StorageMaximum = storageLimit
 	return service, nil
+}
+
+func (b2Service *Service) SetLogging(enable bool) {
+	b2Service.Logging = enable
+}
+
+func (b2Service *Service) Logf(format string, v ...any) {
+	if !b2Service.Logging {
+		return
+	}
+
+	log.Printf(format, v)
 }

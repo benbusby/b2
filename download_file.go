@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/benbusby/b2/utils"
 	"io"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -20,9 +19,7 @@ func setupDownload(apiURL, apiVersion, fileID string) (*http.Request, error) {
 		apiURL, apiVersion, APIDownloadById)
 
 	req, err := http.NewRequest("GET", reqURL, nil)
-
 	if err != nil {
-		log.Printf("B2Error creating new HTTP request: %v\n", err)
 		return nil, err
 	}
 
@@ -38,7 +35,6 @@ func setupDownload(apiURL, apiVersion, fileID string) (*http.Request, error) {
 func download(req *http.Request) ([]byte, error) {
 	res, err := utils.Client.Do(req)
 	if err != nil {
-		log.Printf("B2Error requesting B2 download: %v\n", err)
 		return nil, err
 	} else if res.StatusCode >= 400 {
 		resp, _ := httputil.DumpResponse(res, true)
@@ -64,10 +60,10 @@ func download(req *http.Request) ([]byte, error) {
 // PartialDownloadById downloads a file from B2 with a specified begin and end
 // byte. For example, setting begin to 0 and end to 99 will download only the
 // first 99 bytes of the file.
-func (b2Service Service) PartialDownloadById(
+func (b2Service *Service) PartialDownloadById(
 	id string,
-	begin int,
-	end int,
+	begin int64,
+	end int64,
 ) ([]byte, error) {
 	if b2Service.Dummy {
 		return partiallyDownloadLocalFile(
@@ -79,7 +75,7 @@ func (b2Service Service) PartialDownloadById(
 
 	req, err := setupDownload(b2Service.APIURL, b2Service.APIVersion, id)
 	if err != nil {
-		log.Fatalf("B2Error setting up download: %v", err)
+		b2Service.Logf("B2Error setting up download: %v", err)
 		return nil, err
 	}
 
@@ -94,14 +90,14 @@ func (b2Service Service) PartialDownloadById(
 }
 
 // DownloadById downloads an entire file (regardless of size) from B2.
-func (b2Service Service) DownloadById(id string) ([]byte, error) {
+func (b2Service *Service) DownloadById(id string) ([]byte, error) {
 	if b2Service.Dummy {
 		return downloadLocalFile(id, b2Service.LocalPath)
 	}
 
 	req, err := setupDownload(b2Service.APIURL, b2Service.APIVersion, id)
 	if err != nil {
-		log.Fatalf("B2Error setting up download: %v", err)
+		b2Service.Logf("B2Error setting up download: %v", err)
 		return nil, err
 	}
 
@@ -124,8 +120,8 @@ func downloadLocalFile(id string, path string) ([]byte, error) {
 func partiallyDownloadLocalFile(
 	id string,
 	path string,
-	begin int,
-	end int,
+	begin int64,
+	end int64,
 ) ([]byte, error) {
 	fullPath := fmt.Sprintf("%s/%s", strings.TrimSuffix(path, "/"), id)
 	file, err := os.Open(fullPath)
@@ -139,7 +135,7 @@ func partiallyDownloadLocalFile(
 	end += 1
 
 	contents := make([]byte, end-begin)
-	_, err = file.ReadAt(contents, int64(begin))
+	_, err = file.ReadAt(contents, begin)
 	if err != nil {
 		return nil, err
 	}
